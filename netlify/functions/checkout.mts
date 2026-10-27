@@ -17,13 +17,19 @@ export default async (req: Request) => {
     const P = PLANS[plan];
     const pay = await atenasCreate(c, c.amountUnit === 'centavos' ? cents(P.price) : P.price, id);
 
-    const copia = pick(pay, ['qr_code', 'pix_code', 'copia_e_cola', 'copy_paste', 'brcode', 'emv', 'payload', 'pix_copia_e_cola', 'qrcode']);
+    const copia = pick(pay, ['pix_copia_cola', 'qr_code', 'pix_code', 'copia_e_cola', 'copy_paste', 'brcode', 'emv', 'payload', 'pix_copia_e_cola', 'qrcode']);
     let img = pick(pay, ['qr_code_base64', 'qrcode_base64', 'qr_code_image', 'qr_image', 'image_base64']);
     if (!copia && !img) {
       console.error('Resposta inesperada da AtenasPay (sem QR):', JSON.stringify(pay).slice(0, 500));
       throw new Error('Resposta sem QR Code.');
     }
-    // Trava de segurança: o valor dentro do Pix tem que ser o preço do plano.
+    // Trava de segurança 1: o valor que a AtenasPay confirmou tem que ser o preço do plano.
+    const confirmado = pick(pay, ['amount']);
+    if (confirmado != null && Math.abs(Number(confirmado) - P.price) > 0.005 && Number(confirmado) !== cents(P.price)) {
+      console.error('VALOR DIVERGENTE: plano', plan, 'esperado', P.price, 'AtenasPay confirmou', confirmado, '(confira AMOUNT_UNIT)');
+      throw new Error('Valor do Pix diferente do plano.');
+    }
+    // Trava de segurança 2: o valor dentro do Pix tem que ser o preço do plano.
     const emv = copia ? emvAmount(String(copia)) : null;
     if (emv !== null && Math.abs(emv - P.price) > 0.005) {
       console.error('VALOR DO PIX DIVERGENTE: plano', plan, 'esperado', P.price, 'veio', emv, '(confira AMOUNT_UNIT)');
