@@ -41,7 +41,7 @@ section>.w>h2{font-size:clamp(26px,4.5vw,38px);text-align:center;margin-bottom:8
 .seg button:focus-visible{outline:2px solid var(--b)}
 input[type=range]{width:100%;accent-color:var(--p)}
 .vol{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
-.vol output{color:var(--p);font-weight:800}
+.vol .vn{display:flex;align-items:center;gap:4px;color:var(--p);font-weight:800}.vol .vn input{width:78px;background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:6px 8px;font:inherit;text-align:right}.vh{display:block;margin-top:6px;color:var(--mu);font-size:12px}
 .chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px}
 .chk input{margin-top:4px;accent-color:var(--p)}
 .chk small{display:block;color:var(--mu)}
@@ -218,18 +218,17 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 <div class="mrow"><button class="btn" id="mpv" type="button" disabled>Ouvir com a vinheta</button><button class="btn" id="mcopy" type="button">Copiar estes pontos para todas</button></div>
 <div class="msg" id="mmsg" style="text-align:left"></div>
 </div></div>
-<div class="grp"><div class="vol"><label for="vol">Volume da vinheta</label><output id="vo">90%</output></div><input type="range" id="vol" min="0" max="150" value="90"></div>
+<div class="grp"><div class="vol"><label for="voln">Volume da vinheta</label><span class="vn"><input type="number" id="voln" min="0" max="200" step="5" value="100" inputmode="numeric" aria-label="Volume da vinheta em porcentagem">%</span></div><input type="range" id="vol" min="0" max="200" step="5" value="100" aria-label="Volume da vinheta"><small class="vh">100% = volume original da vinheta. Aumente se ela estiver baixa. A música nunca abaixa.</small></div>
 <div class="grp"><span>Fade in</span><div class="seg" id="fi"><button type="button" data-v="0" aria-pressed="true">Desativado</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button></div></div>
 <div class="grp"><span>Fade out</span><div class="seg" id="fo"><button type="button" data-v="0" aria-pressed="true">Desativado</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button></div></div>
-<div class="grp"><span>Espaço entre vinheta e música</span><div class="seg" id="gap"><button type="button" data-v="0" aria-pressed="true">0 s</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button><button type="button" data-v="3" aria-pressed="false">3 s</button></div></div>
-<label class="chk"><input type="checkbox" id="norm"><span>Normalizar volume das músicas<small>Mantém um volume consistente entre as faixas.</small></span></label>
+<label class="chk"><input type="checkbox" id="norm"><span>Normalizar volume das músicas<small>Deixa todas as faixas no mesmo volume, o que muda o volume da música. Deixe desligado para manter o original.</small></span></label>
 <label class="chk"><input type="checkbox" id="wav"><span>Manter qualidade original (WAV)<small>Desative para comprimir em MP3 e gerar arquivos bem mais leves.</small></span></label>
 </div>
 
 <div class="card step"><h3>Pré-visualização</h3><small>Ouça o resultado na primeira música antes de processar tudo.</small>
 <div style="margin-top:14px"><button class="btn" id="pv" type="button" disabled>Testar vinheta</button></div><div class="msg" id="pvm"></div></div>
 
-<div class="card free" id="fr"><b>Modo teste:</b> processa até 3 músicas e o download fica bloqueado. <a href="#planos" style="color:var(--b)">Assine</a> para liberar o repertório inteiro e baixar o ZIP.</div>
+<div class="card free" id="fr"><b>Modo teste:</b> processa até 3 músicas e o download fica bloqueado. <a href="#planos" style="color:var(--b)">Assine</a> para liberar o repertório inteiro e baixar o ZIP. <a href="#" id="lic2" style="color:var(--b)">Já tenho uma chave</a>.</div>
 
 <div id="act"><button class="btn pri" id="go" type="button" disabled>Aplicar vinheta em todas</button><div class="msg" id="gom">Envie as músicas e a vinheta para começar</div></div>
 
@@ -290,15 +289,16 @@ const devId=()=>{try{let d=localStorage.getItem('ms_dev');if(!/^[a-f0-9]{32}$/.t
 async function checkKey(k){k=(k||'').trim().toUpperCase();if(!k)return null;
  const r=await fetch(CONFIG.api+'/api/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,device:devId()})});
  const j=await r.json();if(j&&j.valid)return j;if(j&&j.reason==='device-limit')throw new Error('device-limit');return null}
-const $=s=>document.querySelector(s),FREE=CONFIG.freeLimit,DUCK=.65,tick=()=>new Promise(r=>setTimeout(r));
-let ctx,songs=[],vin=null,o={pos:'auto',vol:90,fi:0,fo:0,gap:0},zipBlob=null,src=null,stop=false,paid=false;
+const $=s=>document.querySelector(s),FREE=CONFIG.freeLimit,tick=()=>new Promise(r=>setTimeout(r));
+let ctx,songs=[],vin=null,o={pos:'auto',vol:100,fi:0,fo:0,gap:0},zipBlob=null,src=null,stop=false,paid=false;
 const ac=()=>ctx||(ctx=new(window.AudioContext||window.webkitAudioContext)());
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hide'),3500)};
 const dec=async f=>ac().decodeAudioData(await f.arrayBuffer());
 
 function seg(id,k,num){document.querySelectorAll(id+' button').forEach(b=>b.onclick=()=>{document.querySelectorAll(id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b));o[k]=num?parseFloat(b.dataset.v):b.dataset.v})}
-seg('#pos','pos');seg('#fi','fi',1);seg('#fo','fo',1);seg('#gap','gap',1);
-$('#vol').oninput=e=>{o.vol=+e.target.value;$('#vo').textContent=o.vol+'%'};
+seg('#pos','pos');seg('#fi','fi',1);seg('#fo','fo',1);
+const setVol=v=>{v=Math.max(0,Math.min(200,Math.round((+v||0)/5)*5));o.vol=v;$('#vol').value=v;$('#voln').value=v};
+$('#vol').oninput=e=>setVol(e.target.value);$('#voln').onchange=e=>setVol(e.target.value);
 
 function zone(d,b,f,cb){b.onclick=()=>f.click();f.onchange=()=>cb([...f.files]);
  d.ondragover=e=>{e.preventDefault();d.classList.add('on')};d.ondragleave=()=>d.classList.remove('on');
@@ -338,14 +338,12 @@ function mix(buf,v,file){
  const out=[new Float32Array(ch(buf,0)),new Float32Array(ch(buf,1))],vc=[ch(v,0),ch(v,1)];
  if($('#norm').checked){let s=0,p=0;const d=out[0];for(let i=0;i<n;i+=4){s+=d[i]*d[i];const a=Math.abs(d[i]);if(a>p)p=a}
   const g=Math.min(.14/(Math.sqrt(s/(n/4))||.1),.98/(p||1));out.forEach(c=>{for(let i=0;i<n;i++)c[i]*=g})}
- const pts=o.pos==='manual'?manPts(file,buf,L):pickPoints(buf,L,o.pos),vg=o.vol/100,ramp=Math.floor(.25*sr),fi=o.fi*sr,fo=o.fo*sr;
- const gp=Math.floor(o.gap*sr);
- for(const p of pts){const s0=p-gp-ramp,e1=p+L+gp+ramp,d0=Math.max(0,s0),d1=Math.min(n,e1);
-  for(let i=d0;i<d1;i++){const e=Math.min(1,s0>0?(i-s0)/ramp:1,e1<n?(e1-i)/ramp:1),k=i-p;let v=0;
-   if(k>=0&&k<L){let f=1;if(fi&&k<fi)f=k/fi;if(fo&&L-k<fo)f=Math.min(f,(L-k)/fo);v=f*vg}
-   for(let c=0;c<2;c++)out[c][i]=out[c][i]*(1-DUCK*e)+(v?vc[c][k]*v:0)}}
- let pk=0;for(const c of out)for(let i=0;i<n;i+=2){const a=Math.abs(c[i]);if(a>pk)pk=a}
- if(pk>.99){const g=.99/pk;out.forEach(c=>{for(let i=0;i<n;i++)c[i]*=g})}
+ const pts=o.pos==='manual'?manPts(file,buf,L):pickPoints(buf,L,o.pos),vg=o.vol/100,fi=o.fi*sr,fo=o.fo*sr;
+ /* A vinheta é SOMADA por cima da música. A música não abaixa em nenhum momento. */
+ for(const p of pts){for(let k=0;k<L&&p+k<n;k++){let f=1;if(fi&&k<fi)f=k/fi;if(fo&&L-k<fo)f=Math.min(f,(L-k)/fo);const g=f*vg,i=p+k;
+   for(let c=0;c<2;c++)out[c][i]+=vc[c][k]*g}}
+ /* Se a soma passar de 0 dB, só o pico é suavizado (limitador). O resto da música fica com o volume original. */
+ const TH=.95,R=1-TH;for(const c of out)for(let i=0;i<n;i++){const x=c[i],a=x<0?-x:x;if(a>TH)c[i]=(x<0?-1:1)*(TH+R*Math.tanh((a-TH)/R))}
  return{out,pts,sr}}
 
 async function encode(out,sr){
@@ -509,6 +507,7 @@ $('#pck').onclick=async()=>{try{await navigator.clipboard.writeText(pEl('pkey').
 $('#pdone').onclick=pClose;
 function setPaid(k,q){paid=true;try{localStorage.setItem('ms_lic',JSON.stringify({key:k}))}catch(e){}$('#lic').textContent='Assinatura ativa ✓ (trocar chave)';upd();if(!q)toast('Assinatura ativada. Download liberado!')}
 $('#lic').onclick=e=>{e.preventDefault();$('#licbox').classList.toggle('hide')};
+$('#lic2').onclick=e=>{e.preventDefault();$('#licbox').classList.remove('hide');$('#planos').scrollIntoView({behavior:'smooth'});$('#lk').focus()};
 $('#lkb').onclick=async()=>{const k=$('#lk').value.trim();$('#lkm').textContent='Verificando…';try{if(await checkKey(k)){setPaid(k);$('#lkm').textContent='';$('#licbox').classList.add('hide')}else $('#lkm').textContent='Chave inválida. Confira e tente de novo.'}catch(e){$('#lkm').textContent=e&&e.message==='device-limit'?'Essa chave já está em 2 aparelhos. Fale com o suporte para liberar outro.':'Não consegui verificar agora. Tente de novo em instantes.'}};
 (async()=>{let v=null;try{v=JSON.parse(localStorage.getItem('ms_lic')||'null')}catch(e){}
  if(v&&v.key){let ok;try{ok=await checkKey(v.key)}catch(e){ok=true}if(ok)setPaid(v.key,1);else try{localStorage.removeItem('ms_lic')}catch(e){}}upd()})();

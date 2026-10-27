@@ -74,6 +74,7 @@ export type License = {
   plan: string; email: string; order_id: string; expires_at: number | null; revoked: boolean; created_at: number;
   name?: string; phone?: string; // quem comprou
   hint?: string;                  // final da chave (5 caracteres), para o suporte identificar a chave sem guardá-la
+  max_devices?: number;           // limite próprio de aparelhos (chaves de administrador); vazio = MAX_DEVICES
 };
 
 export const ordersStore = () => getStore({ name: 'orders', consistency: 'strong' });

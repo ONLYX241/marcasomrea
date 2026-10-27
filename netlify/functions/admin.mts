@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions';
-import { badConfig, cfg, code, devicesStore, json, licensesStore, ordersStore, readJson, safeEq, type License, type Order } from '../lib/common.mts';
+import { badConfig, cfg, cleanName, cleanPhone, code, devicesStore, hashKey, json, licensesStore, newLicenseKey, newOrderId, now, ordersStore, PLANS, readJson, safeEq, type License, type Order } from '../lib/common.mts';
 
 // Admin: autenticação por "Authorization: Bearer <ADMIN_TOKEN>"
 export default async (req: Request) => {
@@ -51,11 +51,30 @@ export default async (req: Request) => {
       const cu = by.get(lic.email) || { email: lic.email, name: '', phone: '', purchases: [] };
       if (lic.name) cu.name = lic.name;
       if (lic.phone) cu.phone = lic.phone;
-      cu.purchases.push({ order_id: lic.order_id, plan: lic.plan, created_at: lic.created_at, expires_at: lic.expires_at, revoked: lic.revoked, devices, hint: lic.hint || '' });
+      cu.purchases.push({ order_id: lic.order_id, plan: lic.plan, created_at: lic.created_at, expires_at: lic.expires_at, revoked: lic.revoked, devices, max: lic.max_devices || c.maxDevices, hint: lic.hint || '' });
       by.set(lic.email, cu);
     }
     const out = [...by.values()].sort((a: any, b: any) => b.purchases[b.purchases.length - 1].created_at - a.purchases[a.purchases.length - 1].created_at);
     return json({ maxDevices: c.maxDevices, customers: out });
+  }
+  // libera uma chave sem pagamento: administrador/teste (sem vencimento, 20 aparelhos) ou venda feita por fora (plano normal).
+  // A chave aparece UMA vez na resposta; no servidor fica só o hash.
+  if (req.method === 'POST' && path === '/api/admin/grant') {
+    const b = await readJson(req);
+    const email = String(b.email || '').trim().toLowerCase();
+    const plan = String(b.plan || 'admin');
+    if (!/^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/.test(email) || email.length > 254) return json({ error: 'E-mail inválido.' }, 400);
+    if (plan !== 'admin' && !PLANS[plan]) return json({ error: 'Plano inválido.' }, 400);
+    const key = newLicenseKey(), h = hashKey(c.pepper, key);
+    const days = plan === 'admin' ? null : PLANS[plan].days;
+    const lic: License = {
+      plan, email, order_id: 'manual-' + newOrderId().slice(0, 8),
+      expires_at: days ? now() + days * 86400000 : null, revoked: false, created_at: now(),
+      name: cleanName(b.name), phone: cleanPhone(b.phone), hint: key.slice(-5),
+      ...(plan === 'admin' ? { max_devices: 20 } : {}),
+    };
+    await licensesStore().setJSON(h, lic, { onlyIfNew: true });
+    return json({ key, plan, expires_at: lic.expires_at });
   }
   if (req.method === 'POST' && path === '/api/admin/revoke') {
     const email = String((await readJson(req)).email || '').toLowerCase();
@@ -77,7 +96,7 @@ export default async (req: Request) => {
 };
 
 export const config: Config = {
-  path: ['/api/admin/orders', '/api/admin/customers', '/api/admin/revoke', '/api/admin/reset-devices'],
+  path: ['/api/admin/orders', '/api/admin/customers', '/api/admin/grant', '/api/admin/revoke', '/api/admin/reset-devices'],
   method: ['GET', 'POST'],
   rateLimit: { action: 'rate_limit', windowLimit: 20, windowSize: 60, aggregateBy: ['ip', 'domain'] },
 };

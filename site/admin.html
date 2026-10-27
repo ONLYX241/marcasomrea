@@ -17,6 +17,8 @@ h1{font-size:22px;margin:0}
 .btn.pri{background:var(--p);border-color:transparent;color:#03140f}
 .btn.dng{border-color:#f8717155;color:var(--bad)}
 .btn:focus-visible,input:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+.gr{display:grid;grid-template-columns:1fr 1fr 1.3fr auto;gap:8px;margin-top:10px}.gr input,.gr select{background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:10px 12px;font:inherit;width:100%;min-width:0}
+.gk{font:700 17px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em;background:#0a1211;border:1px dashed var(--p);border-radius:12px;padding:12px;margin-top:10px;word-break:break-all;user-select:all}
 input[type=password],input[type=search]{background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:11px 13px;font:inherit;width:100%}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
 #login{max-width:420px;margin:12vh auto 0}
@@ -40,7 +42,7 @@ input[type=password],input[type=search]{background:#0a1211;border:1px solid var(
 .sc{overflow-x:auto}
 .empty{color:var(--mu);text-align:center;padding:30px 0}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--card);border:1px solid var(--p);padding:11px 16px;border-radius:12px;max-width:90vw;z-index:9}
-@media(max-width:640px){.pu{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.pu{grid-template-columns:1fr 1fr}.gr{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -56,6 +58,10 @@ input[type=password],input[type=search]{background:#0a1211;border:1px solid var(
 
 <div id="app" class="hide">
 <div class="top"><h1>Clientes do MarcaSom</h1><div style="display:flex;gap:8px"><button class="btn" id="reload" type="button">Atualizar</button><button class="btn" id="csv" type="button">Exportar CSV</button><button class="btn" id="out" type="button">Sair</button></div></div>
+<div class="card" style="margin-bottom:14px"><b>Liberar acesso sem pagamento</b> <span style="color:var(--mu);font-size:13px">(para você testar, outros administradores ou venda feita por fora)</span>
+<div class="gr"><input id="gname" type="text" placeholder="Nome" aria-label="Nome" maxlength="80"><input id="gmail" type="email" placeholder="E-mail" aria-label="E-mail"><select id="gplan" aria-label="Plano"><option value="admin">Administrador (sem vencimento, 20 aparelhos)</option><option value="mensal">Mensal (30 dias)</option><option value="trimestral">Trimestral (90 dias)</option><option value="vitalicio">Vitalício</option></select><button class="btn pri" id="ggo" type="button">Gerar chave</button></div>
+<div id="gres" class="hide"><div class="gk" id="gkey"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn" id="gcp" type="button">Copiar chave</button><span style="color:var(--mu);font-size:13px">Guarde agora: por segurança a chave não aparece de novo. No site, clique em "Já tenho uma chave" e cole.</span></div></div>
+<div class="err" id="gerr" role="alert"></div></div>
 <div class="stats" id="stats"></div>
 <div class="tabs"><button class="btn" id="t1" type="button" aria-pressed="true">Clientes</button><button class="btn" id="t2" type="button" aria-pressed="false">Pedidos (inclui não pagos)</button></div>
 <div class="bar"><input id="q" type="search" placeholder="Buscar por nome, e-mail ou WhatsApp" aria-label="Buscar"></div>
@@ -69,7 +75,7 @@ input[type=password],input[type=search]{background:#0a1211;border:1px solid var(
 const $=s=>document.querySelector(s);
 let TOKEN='',DATA=null,ORDERS=null,MAXDEV=2;
 try{TOKEN=sessionStorage.getItem('ms_admin')||''}catch(e){}
-const PLAN={mensal:'Mensal',trimestral:'Trimestral',vitalicio:'Vitalício'};
+const PLAN={admin:'Administrador',mensal:'Mensal',trimestral:'Trimestral',vitalicio:'Vitalício'};
 const dt=ms=>ms?new Date(ms).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
 const dd=ms=>ms?new Date(ms).toLocaleDateString('pt-BR'):'—';
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hide'),3500)};
@@ -112,7 +118,7 @@ function draw(){
    const [txt,cls]=status(p),row=el('div','pu');
    const a=el('div');a.append(el('b','',PLAN[p.plan]||p.plan),el('small','','Comprou em '+dt(p.created_at)));
    const b=el('div');b.append(el('span','tg '+cls,txt),el('small','',p.expires_at?'Vence em '+dd(p.expires_at):'Sem vencimento'));
-   const cc=el('div');cc.append(el('b','',p.devices+' de '+MAXDEV),el('small','','aparelhos em uso'));
+   const cc=el('div');cc.append(el('b','',p.devices+' de '+(p.max||MAXDEV)),el('small','','aparelhos em uso'));
    const d=el('div');d.append(el('b','',p.hint?'…'+p.hint:'—'),el('small','','final da chave'));
    row.append(a,b,cc,d);card.appendChild(row)});
   v.appendChild(card)})}
@@ -149,6 +155,14 @@ $('#csv').onclick=()=>{if(!DATA)return;
  const blob=new Blob(['\ufeff'+rows.map(r=>r.map(cell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='clientes-marcasom.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
 
+$('#ggo').onclick=async()=>{const b=$('#ggo'),err=$('#gerr');err.textContent='';
+ const email=$('#gmail').value.trim();if(!/^\S+@\S+\.\S{2,}$/.test(email)){err.textContent='Digite um e-mail válido.';return}
+ b.disabled=true;b.textContent='Gerando…';
+ try{const r=await api('/api/admin/grant','POST',{name:$('#gname').value.trim(),email,plan:$('#gplan').value});
+  $('#gkey').textContent=r.key;$('#gres').classList.remove('hide');$('#gname').value='';$('#gmail').value='';await load();toast('Chave gerada.')}
+ catch(e){err.textContent=e.message||'Não consegui gerar.'}
+ b.disabled=false;b.textContent='Gerar chave'};
+$('#gcp').onclick=async()=>{try{await navigator.clipboard.writeText($('#gkey').textContent);toast('Chave copiada.')}catch(e){toast('Selecione a chave e copie.')}};
 function logout(){TOKEN='';try{sessionStorage.removeItem('ms_admin')}catch(e){}DATA=null;ORDERS=null;$('#app').classList.add('hide');$('#login').classList.remove('hide');$('#tok').value=''}
 $('#out').onclick=logout;
 async function enter(){TOKEN=$('#tok').value.trim();$('#lerr').textContent='';if(!TOKEN){$('#lerr').textContent='Digite o token.';return}

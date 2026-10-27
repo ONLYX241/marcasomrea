@@ -16,14 +16,15 @@ export default async (req: Request) => {
   if (L.expires_at && L.expires_at < now()) return json({ valid: false, reason: 'expired' });
 
   const D = devicesStore();
+  const maxDev = L.max_devices || c.maxDevices;
   const dk = `${h}/${device}`;
   if ((await D.get(dk)) === null) {
     const antes = await D.list({ prefix: h + '/' });
-    if (antes.blobs.length >= c.maxDevices) return json({ valid: false, reason: 'device-limit' });
+    if (antes.blobs.length >= maxDev) return json({ valid: false, reason: 'device-limit' });
     await D.set(dk, String(now()), { onlyIfNew: true });
     // se dois aparelhos novos entraram ao mesmo tempo, o excedente é recusado
     const depois = await D.list({ prefix: h + '/' });
-    if (depois.blobs.length > c.maxDevices) { await D.delete(dk); return json({ valid: false, reason: 'device-limit' }); }
+    if (depois.blobs.length > maxDev) { await D.delete(dk); return json({ valid: false, reason: 'device-limit' }); }
   }
   return json({ valid: true, plan: L.plan, expiresAt: L.expires_at });
 };
