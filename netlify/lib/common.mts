@@ -28,6 +28,9 @@ export function cfg() {
     adminToken: g('ADMIN_TOKEN'),
     maxDevices: Number(g('MAX_DEVICES')) || 2,
     // Em que unidade a AtenasPay espera o campo "amount": 'reais' (29.90) ou 'centavos' (2990).
+    // Proteções opcionais
+    turnstileSecret: g('TURNSTILE_SECRET'),            // Cloudflare Turnstile (anti-robô). Vazio = desligado.
+    checkoutPaused: g('CHECKOUT_PAUSED') === '1',      // freio de emergência: pausa a criação de Pix
     amountUnit: (g('AMOUNT_UNIT') || 'reais').toLowerCase() === 'centavos' ? 'centavos' : 'reais',
   };
   const missing = (['apiKey', 'webhookSecret', 'pepper', 'adminToken'] as const).filter(k => !c[k]);
@@ -47,6 +50,10 @@ export const PLANS: Record<string, { name: string; price: number; days: number |
 export const cents = (p: number) => Math.round(p * 100); // AtenasPay recebe centavos (5000 = R$ 50,00)
 export const now = () => Date.now();
 
+// Dados do comprador: tira caracteres de controle e limita o tamanho.
+export const cleanName = (v: unknown) => String(v ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+export const cleanPhone = (v: unknown) => String(v ?? '').replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
+
 // ---------- Respostas ----------
 const H = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
 export const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: H });
@@ -60,11 +67,18 @@ export async function readJson(req: Request): Promise<any> {
 export type Order = {
   id: string; plan: string; email: string; amount: number; status: string;
   key_plain: string | null; key_until: number | null; lic: string | null; created_at: number;
+  qr?: string; qrImage?: string;
+  name?: string; phone?: string; // quem comprou (cadastro)
 };
-export type License = { plan: string; email: string; order_id: string; expires_at: number | null; revoked: boolean; created_at: number };
+export type License = {
+  plan: string; email: string; order_id: string; expires_at: number | null; revoked: boolean; created_at: number;
+  name?: string; phone?: string; // quem comprou
+  hint?: string;                  // final da chave (5 caracteres), para o suporte identificar a chave sem guardá-la
+};
 
 export const ordersStore = () => getStore({ name: 'orders', consistency: 'strong' });
 export const licensesStore = () => getStore({ name: 'licenses', consistency: 'strong' });
+export const pendingStore = () => getStore({ name: 'pending', consistency: 'strong' });
 export const devicesStore = () => getStore({ name: 'devices', consistency: 'strong' });
 
 // ---------- Criptografia ----------
@@ -136,6 +150,7 @@ export async function approveOrder(pepper: string, orderId: string): Promise<boo
     const lic: License = {
       plan: o.plan, email: o.email, order_id: o.id,
       expires_at: plan.days ? now() + plan.days * 86400000 : null, revoked: false, created_at: now(),
+      name: o.name || '', phone: o.phone || '', hint: key.slice(-5),
     };
     await licensesStore().setJSON(h, lic, { onlyIfNew: true });
     const upd: Order = { ...o, status: 'approved', key_plain: key, key_until: now() + 24 * 3600 * 1000, lic: h };
@@ -159,3 +174,17 @@ export function apiKeyInfo() {
     colouONomeJuntoComOValor: /^ATENAS_API_KEY\s*=/.test(k),
   };
 }
+
+// ---------- Anti-robô (Cloudflare Turnstile, opcional) ----------
+export async function verifyTurnstile(secret: string, token: string, ip?: string): Promise<boolean> {
+  if (!token || token.length > 2048) return false;
+  const body = new URLSearchParams({ secret, response: token });
+  if (ip) body.set('remoteip', ip);
+  const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body, signal: AbortSignal.timeout(8000) });
+  const j: any = await r.json().catch(() => ({}));
+  return j.success === true;
+}
+
+// Um Pix pendente por e-mail+plano: cliques repetidos devolvem o MESMO Pix e não criam cobranças novas.
+export const pendingKey = (plan: string, email: string) => crypto.createHash('sha256').update(plan + '|' + email).digest('hex');
+export const PIX_VALID_MS = 25 * 60 * 1000;
