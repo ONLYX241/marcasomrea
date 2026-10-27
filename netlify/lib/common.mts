@@ -114,7 +114,7 @@ export async function atenasCreate(c: { base: string; apiKey: string }, amountCe
 
 // Procura um campo em vários nomes possíveis, na raiz ou dentro de data/pix/payment.
 export function pick(obj: any, names: string[]) {
-  const boxes = [obj, obj?.data, obj?.pix, obj?.payment, obj?.data?.pix].filter(x => x && typeof x === 'object');
+  const boxes = [obj, obj?.transaction, obj?.data, obj?.data?.transaction, obj?.pix, obj?.payment, obj?.data?.pix].filter(x => x && typeof x === 'object');
   for (const b of boxes) for (const n of names) if (b[n] != null && b[n] !== '') return b[n];
   return null;
 }
