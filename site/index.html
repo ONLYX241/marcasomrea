@@ -338,13 +338,13 @@ function mix(buf,v,file){
  const out=[new Float32Array(ch(buf,0)),new Float32Array(ch(buf,1))],vc=[ch(v,0),ch(v,1)];
  if($('#norm').checked){let s=0,p=0;const d=out[0];for(let i=0;i<n;i+=4){s+=d[i]*d[i];const a=Math.abs(d[i]);if(a>p)p=a}
   const g=Math.min(.14/(Math.sqrt(s/(n/4))||.1),.98/(p||1));out.forEach(c=>{for(let i=0;i<n;i++)c[i]*=g})}
- const pts=o.pos==='manual'?manPts(file,buf,L):pickPoints(buf,L,o.pos),vg=o.vol/100,fi=o.fi*sr,fo=o.fo*sr;
+ const pts=o.pos==='manual'?manPts(file,buf,L):pickPoints(buf,L,o.pos),vg=o.vol/100,fi=o.fi*sr,fo=o.fo*sr;let cl=0;
  /* A vinheta é SOMADA por cima da música. A música não abaixa em nenhum momento. */
  for(const p of pts){for(let k=0;k<L&&p+k<n;k++){let f=1;if(fi&&k<fi)f=k/fi;if(fo&&L-k<fo)f=Math.min(f,(L-k)/fo);const g=f*vg,i=p+k;
-   for(let c=0;c<2;c++)out[c][i]+=vc[c][k]*g}}
+   for(let c=0;c<2;c++){out[c][i]+=vc[c][k]*g;if(out[c][i]>.95||out[c][i]<-.95)cl++}}}
  /* Se a soma passar de 0 dB, só o pico é suavizado (limitador). O resto da música fica com o volume original. */
  const TH=.95,R=1-TH;for(const c of out)for(let i=0;i<n;i++){const x=c[i],a=x<0?-x:x;if(a>TH)c[i]=(x<0?-1:1)*(TH+R*Math.tanh((a-TH)/R))}
- return{out,pts,sr}}
+ return{out,pts,sr,clip:cl/(pts.length*L*2||1)}}
 
 async function encode(out,sr){
  const n=out[0].length,cv=c=>{const a=new Int16Array(n);for(let i=0;i<n;i++){const s=Math.max(-1,Math.min(1,out[c][i]));a[i]=s<0?s*32768:s*32767}return a},l=cv(0),r=cv(1);
@@ -364,7 +364,7 @@ async function preview(f,at){
   await ctx.resume();src=ctx.createBufferSource();src.buffer=ab;src.connect(ctx.destination);
   const t=Math.max(0,(at==null?m.pts[0]/m.sr:at)-6);src.start(0,t,Math.min(20,ab.duration-t));
   src.onended=()=>{src=null;setPv('Testar vinheta')};
-  setPv('Parar');$('#pvm').textContent='Tocando o trecho da vinheta em “'+f.name+'”'}
+  setPv('Parar');$('#pvm').textContent='Tocando o trecho da vinheta em “'+f.name+'”'+(m.clip>.02?' · Atenção: essa música já é muito alta e a soma com a vinheta passou do limite (pico suavizado). Se notar distorção, diminua o volume da vinheta.':' · ✓ música no volume original')}
  catch(e){$('#pvm').textContent='Não consegui processar essa música.'}}
 $('#pv').onclick=()=>{const sel=o.pos==='manual'&&ed.f;preview(sel?ed.f:songs[0],sel&&ed.act>=0?mks()[ed.act]:null)};
 $('#mpv').onclick=()=>$('#pv').onclick();
@@ -442,10 +442,10 @@ $('#go').onclick=async()=>{
  const list=paid?songs:songs.slice(0,FREE),zip=new JSZip(),wav=$('#wav').checked;zipBlob=null;
  stop=false;$('#cx').textContent='Cancelar';$('#pb').style.width='0';$('#act').classList.add('hide');$('#rs').classList.add('hide');$('#prc').classList.remove('hide');
  const pl=$('#pl');pl.innerHTML='';const rows=list.map((f,i)=>{const d=document.createElement('div');d.innerHTML='<span></span><em>Na fila</em>';d.firstChild.textContent=(i+1)+'. '+f.name;pl.appendChild(d);return d});
- $('#prc').scrollIntoView({behavior:'smooth',block:'center'});let done=0,fail=0;
+ $('#prc').scrollIntoView({behavior:'smooth',block:'center'});let done=0,fail=0,hot=0;
  for(let i=0;i<list.length;i++){if(stop)break;
   $('#pn').textContent='Música '+(i+1)+' de '+list.length;rows[i].lastChild.textContent='Processando…';await tick();
-  try{const buf=await dec(list[i]),m=mix(buf,vin,list[i]),blob=paid?await encode(m.out,m.sr):null;
+  try{const buf=await dec(list[i]),m=mix(buf,vin,list[i]),blob=paid?await encode(m.out,m.sr):null;if(m.clip>.02)hot++;
    if(paid){const base=list[i].name.replace(/\.[^.]+$/,''),ext=wav?'.wav':'.mp3';let nm=base,q=1;while(zip.file(nm+ext))nm=base+' ('+(++q)+')';zip.file(nm+ext,blob)}rows[i].className='d';rows[i].lastChild.textContent='Concluída';done++}
   catch(e){rows[i].lastChild.textContent='Erro';fail++}
   $('#pb').style.width=Math.round((i+1)/list.length*100)+'%';rows[i].scrollIntoView({block:'nearest'})}
@@ -453,7 +453,7 @@ $('#go').onclick=async()=>{
  if(!done){$('#pn').textContent='Nenhuma música foi processada. Confira os arquivos.';$('#act').classList.remove('hide');return}
  if(paid)zipBlob=await zip.generateAsync({type:'blob'});
  $('#prc').classList.add('hide');$('#rs').classList.remove('hide');
- $('#rs h3').textContent=paid?'Pronto! Repertório com vinheta.':'Teste concluído!';$('#dl').textContent=paid?'Baixar ZIP':'Assinar para baixar';$('#rm').textContent=paid?done+' música(s) prontas'+(fail?', '+fail+' com erro':'')+'. O ZIP tem '+(zipBlob.size/1048576).toFixed(1).replace('.',',')+' MB.':'A vinheta funcionou em '+done+' música(s). No modo teste o download fica bloqueado: assine para baixar o ZIP.';
+ $('#rs h3').textContent=paid?'Pronto! Repertório com vinheta.':'Teste concluído!';$('#dl').textContent=paid?'Baixar ZIP':'Assinar para baixar';$('#rm').textContent=(hot?'Atenção: em '+hot+' música(s) a música original já é muito alta e a soma com a vinheta passou do limite (o pico foi suavizado). Se notar distorção, diminua o volume da vinheta. ':'✓ Música mantida no volume original durante a vinheta. ')+(paid?done+' música(s) prontas'+(fail?', '+fail+' com erro':'')+'. O ZIP tem '+(zipBlob.size/1048576).toFixed(1).replace('.',',')+' MB.':'A vinheta funcionou em '+done+' música(s). No modo teste o download fica bloqueado: assine para baixar o ZIP.');
  $('#rs').scrollIntoView({behavior:'smooth',block:'center'});$('#act').classList.remove('hide')};
 
 $('#dl').onclick=async()=>{if(!paid){$('#planos').scrollIntoView({behavior:'smooth'});return}if(!zipBlob)return;const name='repertorio-com-vinheta.zip';
