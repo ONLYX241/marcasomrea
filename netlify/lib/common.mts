@@ -8,15 +8,18 @@ declare const Netlify: { env: { get(k: string): string | undefined } };
 // ---------- Configuração ----------
 // Nomes (nunca valores) das variáveis ausentes ou curtas demais, para diagnóstico.
 export function configProblems(): string[] {
-  const g = (k: string) => Netlify.env.get(k) || '';
+  const g = (k: string) => clean(Netlify.env.get(k));
   const out: string[] = [];
   for (const k of ['ATENAS_API_KEY', 'ATENAS_WEBHOOK_SECRET', 'LICENSE_PEPPER', 'ADMIN_TOKEN']) if (!g(k)) out.push(k + ' (vazia ou não existe)');
   for (const k of ['LICENSE_PEPPER', 'ADMIN_TOKEN']) if (g(k) && g(k).length < 32) out.push(k + ' (menos de 32 caracteres)');
   return out;
 }
 
+// Remove espaços, quebras de linha e aspas que costumam vir junto ao colar uma chave.
+const clean = (v: string | undefined) => (v || '').trim().replace(/^["']+|["']+$/g, '').trim();
+
 export function cfg() {
-  const g = (k: string) => Netlify.env.get(k) || '';
+  const g = (k: string) => clean(Netlify.env.get(k));
   const c = {
     apiKey: g('ATENAS_API_KEY'),
     webhookSecret: g('ATENAS_WEBHOOK_SECRET'),
@@ -123,4 +126,18 @@ export async function approveOrder(pepper: string, orderId: string): Promise<boo
     await licensesStore().delete(h); // perdeu a corrida: desfaz a licença criada e tenta de novo
   }
   return false;
+}
+
+// Diagnóstico seguro da chave da AtenasPay: só formato, nunca o valor completo.
+export function apiKeyInfo() {
+  const raw = Netlify.env.get('ATENAS_API_KEY') || '';
+  const k = clean(raw);
+  return {
+    comecaCom: k.slice(0, 15),
+    terminaCom: k.slice(-4),
+    tamanho: k.length,
+    tinhaEspacoOuQuebraDeLinha: raw !== raw.trim(),
+    tinhaAspas: /^["']|["']$/.test(raw.trim()),
+    colouONomeJuntoComOValor: /^ATENAS_API_KEY\s*=/.test(k),
+  };
 }
