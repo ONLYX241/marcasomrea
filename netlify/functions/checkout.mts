@@ -1,20 +1,40 @@
-import type { Config } from '@netlify/functions';
+import type { Config, Context } from '@netlify/functions';
 import QRCode from 'qrcode';
-import { atenasCreate, badConfig, cents, cfg, emvAmount, json, newOrderId, now, ordersStore, pick, PLANS, readJson, type Order } from '../lib/common.mts';
+import { atenasCreate, badConfig, cents, cfg, cleanName, cleanPhone, emvAmount, json, newOrderId, now, ordersStore, pendingKey, pendingStore, pick, PIX_VALID_MS, PLANS, readJson, verifyTurnstile, type Order } from '../lib/common.mts';
 
 // 1) cria a cobrança Pix com o PREÇO DO SERVIDOR
-export default async (req: Request) => {
+export default async (req: Request, context?: Context) => {
   const c = cfg();
   if (!c) return badConfig();
+  if (c.checkoutPaused) return json({ error: 'Vendas temporariamente pausadas. Tente novamente mais tarde.' }, 503);
   try {
     const b = await readJson(req);
     const plan = String(b.plan || '');
     const email = String(b.email || '').trim().toLowerCase();
+    const name = cleanName(b.name), phone = cleanPhone(b.phone);
     if (!PLANS[plan]) return json({ error: 'Plano inválido.' }, 400);
+    if (name.length < 2) return json({ error: 'Digite seu nome.' }, 400);
     if (!/^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/.test(email) || email.length > 254) return json({ error: 'E-mail inválido.' }, 400);
 
-    const id = newOrderId();
+    // Anti-robô (só se TURNSTILE_SECRET estiver configurado)
+    if (c.turnstileSecret && !(await verifyTurnstile(c.turnstileSecret, String(b.ts || ''), context?.ip))) {
+      return json({ error: 'Confirme que você não é um robô e tente de novo.' }, 400);
+    }
+
     const P = PLANS[plan];
+    const pk = pendingKey(plan, email);
+
+    // Já existe um Pix pendente e válido para esse e-mail+plano? Devolve o mesmo.
+    const pend = await pendingStore().get(pk, { type: 'json' }) as { id: string } | null;
+    if (pend) {
+      const old = await ordersStore().get(pend.id, { type: 'json' }) as Order | null;
+      if (old && old.status === 'pending' && old.qr && now() - old.created_at < PIX_VALID_MS) {
+        const left = Math.max(1, Math.ceil((PIX_VALID_MS - (now() - old.created_at)) / 60000));
+        return json({ orderId: old.id, amount: old.amount, plan, qr: old.qr, qrImage: old.qrImage || '', expiresInMin: left });
+      }
+    }
+
+    const id = newOrderId();
     const pay = await atenasCreate(c, c.amountUnit === 'centavos' ? cents(P.price) : P.price, id);
 
     const copia = pick(pay, ['pix_copia_cola', 'qr_code', 'pix_code', 'copia_e_cola', 'copy_paste', 'brcode', 'emv', 'payload', 'pix_copia_e_cola', 'qrcode']);
@@ -38,9 +58,10 @@ export default async (req: Request) => {
     if (img && !String(img).startsWith('data:')) img = 'data:image/png;base64,' + img;
     if (!img) img = await QRCode.toDataURL(String(copia), { margin: 1, width: 440 }); // QR a partir do copia e cola
 
-    const order: Order = { id, plan, email, amount: P.price, status: 'pending', key_plain: null, key_until: null, lic: null, created_at: now() };
+    const order: Order = { id, plan, email, amount: P.price, status: 'pending', key_plain: null, key_until: null, lic: null, created_at: now(), qr: copia ? String(copia) : '', qrImage: String(img), name, phone };
     await ordersStore().setJSON(id, order);
-    return json({ orderId: id, amount: P.price, plan, qr: copia || '', qrImage: img, expiresInMin: 30 });
+    await pendingStore().setJSON(pk, { id });
+    return json({ orderId: id, amount: P.price, plan, qr: order.qr, qrImage: order.qrImage, expiresInMin: 30 });
   } catch (e: any) {
     console.error('checkout', e.message, e.detail ? JSON.stringify(e.detail) : '');
     return json({ error: 'Não consegui gerar o Pix agora. Tente novamente.' }, 502);
@@ -50,5 +71,5 @@ export default async (req: Request) => {
 export const config: Config = {
   path: '/api/checkout',
   method: 'POST',
-  rateLimit: { action: 'rate_limit', windowLimit: 8, windowSize: 60, aggregateBy: ['ip', 'domain'] },
+  rateLimit: { action: 'rate_limit', windowLimit: 6, windowSize: 60, aggregateBy: ['ip', 'domain'] },
 };

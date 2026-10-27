@@ -27,8 +27,35 @@ export default async (req: Request) => {
     const all = (await Promise.all(blobs.slice(0, 500).map(async ({ key }) => await S.get(key, { type: 'json' }) as Order | null)))
       .filter((o): o is Order => !!o)
       .sort((a, b) => b.created_at - a.created_at).slice(0, 100)
-      .map(o => ({ id: o.id, plan: o.plan, email: o.email, amount: o.amount, status: o.status, created_at: o.created_at }));
+      .map(o => ({ id: o.id, plan: o.plan, name: o.name || '', email: o.email, phone: o.phone || '', amount: o.amount, status: o.status, created_at: o.created_at }));
     return json(all);
+  }
+  // clientes: uma linha por e-mail, com nome, WhatsApp e todas as licenças (plano, validade, aparelhos em uso, final da chave)
+  if (req.method === 'GET' && path === '/api/admin/customers') {
+    const L = licensesStore(), D = devicesStore();
+    const { blobs } = await L.list();
+    const keys = blobs.slice(0, 1000).map(b => b.key);
+    const rows: { lic: License; devices: number }[] = [];
+    for (let i = 0; i < keys.length; i += 20) {
+      const part = await Promise.all(keys.slice(i, i + 20).map(async (h) => {
+        const lic = await L.get(h, { type: 'json' }) as License | null;
+        if (!lic) return null;
+        const dev = await D.list({ prefix: h + '/' });
+        return { lic, devices: dev.blobs.length };
+      }));
+      for (const r of part) if (r) rows.push(r);
+    }
+    rows.sort((a, b) => a.lic.created_at - b.lic.created_at); // a compra mais nova por último: o nome/WhatsApp dela prevalece
+    const by = new Map<string, { email: string; name: string; phone: string; purchases: unknown[] }>();
+    for (const { lic, devices } of rows) {
+      const cu = by.get(lic.email) || { email: lic.email, name: '', phone: '', purchases: [] };
+      if (lic.name) cu.name = lic.name;
+      if (lic.phone) cu.phone = lic.phone;
+      cu.purchases.push({ order_id: lic.order_id, plan: lic.plan, created_at: lic.created_at, expires_at: lic.expires_at, revoked: lic.revoked, devices, hint: lic.hint || '' });
+      by.set(lic.email, cu);
+    }
+    const out = [...by.values()].sort((a: any, b: any) => b.purchases[b.purchases.length - 1].created_at - a.purchases[a.purchases.length - 1].created_at);
+    return json({ maxDevices: c.maxDevices, customers: out });
   }
   if (req.method === 'POST' && path === '/api/admin/revoke') {
     const email = String((await readJson(req)).email || '').toLowerCase();
@@ -50,7 +77,7 @@ export default async (req: Request) => {
 };
 
 export const config: Config = {
-  path: ['/api/admin/orders', '/api/admin/revoke', '/api/admin/reset-devices'],
+  path: ['/api/admin/orders', '/api/admin/customers', '/api/admin/revoke', '/api/admin/reset-devices'],
   method: ['GET', 'POST'],
   rateLimit: { action: 'rate_limit', windowLimit: 20, windowSize: 60, aggregateBy: ['ip', 'domain'] },
 };
