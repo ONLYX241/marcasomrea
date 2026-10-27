@@ -1,6 +1,6 @@
 import type { Config } from '@netlify/functions';
 import QRCode from 'qrcode';
-import { atenasCreate, badConfig, cents, cfg, json, newOrderId, now, ordersStore, pick, PLANS, readJson, type Order } from '../lib/common.mts';
+import { atenasCreate, badConfig, cents, cfg, emvAmount, json, newOrderId, now, ordersStore, pick, PLANS, readJson, type Order } from '../lib/common.mts';
 
 // 1) cria a cobrança Pix com o PREÇO DO SERVIDOR
 export default async (req: Request) => {
@@ -15,13 +15,19 @@ export default async (req: Request) => {
 
     const id = newOrderId();
     const P = PLANS[plan];
-    const pay = await atenasCreate(c, cents(P.price), id);
+    const pay = await atenasCreate(c, c.amountUnit === 'centavos' ? cents(P.price) : P.price, id);
 
     const copia = pick(pay, ['qr_code', 'pix_code', 'copia_e_cola', 'copy_paste', 'brcode', 'emv', 'payload', 'pix_copia_e_cola', 'qrcode']);
     let img = pick(pay, ['qr_code_base64', 'qrcode_base64', 'qr_code_image', 'qr_image', 'image_base64']);
     if (!copia && !img) {
       console.error('Resposta inesperada da AtenasPay (sem QR):', JSON.stringify(pay).slice(0, 500));
       throw new Error('Resposta sem QR Code.');
+    }
+    // Trava de segurança: o valor dentro do Pix tem que ser o preço do plano.
+    const emv = copia ? emvAmount(String(copia)) : null;
+    if (emv !== null && Math.abs(emv - P.price) > 0.005) {
+      console.error('VALOR DO PIX DIVERGENTE: plano', plan, 'esperado', P.price, 'veio', emv, '(confira AMOUNT_UNIT)');
+      throw new Error('Valor do Pix diferente do plano.');
     }
     if (img && !String(img).startsWith('data:')) img = 'data:image/png;base64,' + img;
     if (!img) img = await QRCode.toDataURL(String(copia), { margin: 1, width: 440 }); // QR a partir do copia e cola

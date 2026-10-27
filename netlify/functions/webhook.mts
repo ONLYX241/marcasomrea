@@ -32,7 +32,7 @@ export default async (req: Request) => {
     if (isPaid) {
       // Se a AtenasPay informar o valor pago, ele tem que bater com o preço do plano.
       const amt = pick(b, ['amount', 'paid_amount', 'value']);
-      if (amt != null && Number(amt) !== cents(PLANS[o.plan].price)) {
+      if (amt != null && Number(amt) !== cents(PLANS[o.plan].price) && Math.abs(Number(amt) - PLANS[o.plan].price) > 0.005) {
         console.error('PAGAMENTO SUSPEITO, não liberado', { orderId, amt, esperado: cents(PLANS[o.plan].price) });
         if (o.status === 'pending') await S.setJSON(orderId, { ...o, status: 'flagged' }, { onlyIfMatch: cur.etag });
         return code(200);
