@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MarcaSom – vinheta em todas as músicas, no automático</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#060d0c;--card:#0b1514;--line:#1c2e2b;--tx:#eef3f1;--mu:#9fb0ac;--p:#1fa88a;--b:#8fe3cc;--ok:#34d399;--g:linear-gradient(90deg,#1fa88a,#8fe3cc);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-behavior:smooth;scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:radial-gradient(900px 500px at 50% -80px,#0f5c4d55,transparent),var(--bg);color:var(--tx);font:400 16px/1.55 Sora,system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:1040px;margin:0 auto;padding:0 20px}
+h1,h2,h3{margin:0;line-height:1.08;font-weight:900;letter-spacing:-.02em}
+.gt{background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:transparent;color:var(--tx);font:700 15px Sora,sans-serif;padding:14px 22px;border-radius:12px;cursor:pointer;text-decoration:none}
+.btn.pri{background:var(--g);border-color:transparent;box-shadow:0 8px 30px #1fa88a55}
+.btn:focus-visible,input:focus-visible+label{outline:2px solid var(--b);outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding:30px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+.feat h3{font-size:17px;margin-bottom:6px}.feat p{margin:0;color:var(--mu);font-size:14px}
+section{padding:46px 0}
+section>.w>h2{font-size:clamp(26px,4.5vw,38px);text-align:center;margin-bottom:8px}
+.sub{text-align:center;color:var(--mu);margin:0 auto 30px;max-width:560px}
+.tool{max-width:640px;margin:0 auto;display:grid;gap:16px}
+.step h3{font-size:20px;margin-bottom:4px}
+.step small{color:var(--mu);font-size:13px}
+.drop{margin-top:14px;border:1.5px dashed var(--line);border-radius:14px;padding:30px 16px;text-align:center;transition:.15s}
+.drop.on{border-color:var(--p);background:#1fa88a11}
+.drop b{display:block;font-size:15px;margin-bottom:10px}
+.drop span{display:block;margin-top:10px;color:var(--mu);font-size:12px}
+.drop .btn{padding:10px 18px;font-size:14px;background:var(--p);border-color:transparent}
+.ok{color:var(--ok);font-weight:600;margin-top:10px;font-size:14px}
+.grp{margin-top:18px}
+.grp>label,.grp>span{display:block;font-weight:600;font-size:14px;margin-bottom:8px}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.seg button{background:#091211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:11px 8px;font:600 13px Sora,sans-serif;cursor:pointer}
+.seg button[aria-pressed=true]{border-color:var(--p);background:#1fa88a22}
+.seg button:focus-visible{outline:2px solid var(--b)}
+input[type=range]{width:100%;accent-color:var(--p)}
+.vol{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
+.vol output{color:var(--p);font-weight:800}
+.chk{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px}
+.chk input{margin-top:4px;accent-color:var(--p)}
+.chk small{display:block;color:var(--mu)}
+.free{border-color:#8fe3cc55;background:#8fe3cc0d;font-size:14px;color:var(--mu)}
+.free b{color:var(--tx)}
+#go{width:100%;padding:18px;font-size:17px}
+.msg{text-align:center;color:var(--mu);font-size:13px;margin-top:8px}
+.list{max-height:240px;overflow:auto;margin-top:16px;border:1px solid var(--line);border-radius:12px}
+.list div{display:flex;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px}
+.list div:last-child{border:0}
+.list em{font-style:normal;color:var(--mu);white-space:nowrap}
+.list .d em{color:var(--ok)}
+.bar{height:10px;border-radius:9px;background:#15211f;overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%;width:0;background:var(--g);transition:width .3s}
+.res{text-align:center}
+.res h3{font-size:24px;margin-bottom:8px}
+.hide{display:none!important}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;align-items:stretch}
+.plan{display:flex;flex-direction:column;position:relative}
+.plan.hot{border-color:var(--p);background:linear-gradient(180deg,#1fa88a1f,var(--card) 55%);box-shadow:0 10px 50px #1fa88a33}
+.plan .tag{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--g);border-radius:99px;padding:4px 14px;font-size:12px;font-weight:800;white-space:nowrap}
+.plan h3{font-size:18px}
+.old{color:var(--mu);text-decoration:line-through;font-size:15px;margin-top:14px;min-height:22px}
+.price{font-size:44px;font-weight:900;letter-spacing:-.03em;line-height:1}
+.price small{font-size:14px;font-weight:600;color:var(--mu);letter-spacing:0}
+.hint{margin:8px 0 16px;font-size:13px;font-weight:700;color:var(--ok);min-height:20px}
+.plan ul{list-style:none;padding:0;margin:0 0 22px;display:grid;gap:9px;font-size:14px;flex:1}
+.plan li::before{content:"✓";color:var(--p);font-weight:900;margin-right:9px}
+.plan .btn{width:100%}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:640px;margin:0 auto 34px;text-align:center}
+.cmp b{display:block;font-size:30px;font-weight:900}
+.cmp .a b{color:#f87171}.cmp .z b{color:var(--ok)}
+.cmp span{font-size:13px;color:var(--mu)}
+.guar{text-align:center;color:var(--mu);font-size:14px;margin-top:24px}
+footer{text-align:center;color:var(--mu);font-size:13px;padding:30px 0 50px;border-top:1px solid var(--line)}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--card);border:1px solid var(--p);padding:12px 18px;border-radius:12px;font-size:14px;max-width:90vw;z-index:9}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+@property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
+html{scroll-padding-top:80px}
+h1,h2,h3{font-weight:800;letter-spacing:-.035em}
+.btn.pri,.drop .btn{color:#03140f}.plan .tag{color:#03140f}
+.nv{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:14px 24px;backdrop-filter:blur(14px);background:#060d0c99;border-bottom:1px solid #ffffff10}
+.nv div{display:flex;align-items:center}.nv a{color:var(--mu);text-decoration:none;font-size:14px;margin-left:24px;transition:color .2s}.nv a:hover{color:var(--tx)}
+.nv a.go{color:#0a0a0b;background:#eef3f1;padding:9px 18px;border-radius:99px;font-weight:700}
+.lg{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;letter-spacing:-.02em}
+.lg s{display:flex;align-items:flex-end;gap:3px;height:18px}.lg i{width:4px;height:100%;background:var(--p);border-radius:2px;transform-origin:bottom;animation:eq 1s ease-in-out infinite alternate}
+.lg i:nth-child(2){animation-delay:-.4s;background:var(--b)}.lg i:nth-child(3){animation-delay:-.7s}
+.h0{position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;padding:110px 20px 70px;overflow:hidden;isolation:isolate}
+.glow{position:absolute;left:50%;top:50%;width:min(900px,130vw);aspect-ratio:1;transform:translate(-50%,-50%);background:radial-gradient(closest-side,#1fa88a55,#1fa88a14 55%,transparent);z-index:-3;animation:br 5s ease-in-out infinite alternate}
+.usb{position:absolute;inset:0;display:grid;place-items:center;z-index:-2;pointer-events:none;will-change:transform}
+.usb svg{width:min(290px,50vw);height:auto;animation:fl 7s ease-in-out infinite;filter:drop-shadow(0 30px 60px #1fa88a66)}
+.wave{position:absolute;left:0;right:0;top:50%;height:220px;margin-top:-110px;display:flex;align-items:center;justify-content:space-between;padding:0 2vw;z-index:-1;mix-blend-mode:screen;opacity:.75;pointer-events:none}
+.wave i{width:.7%;height:100%;border-radius:9px;background:linear-gradient(#fff,var(--b));transform:scaleY(var(--h));animation:eq 1.1s ease-in-out infinite alternate;animation-delay:var(--d)}
+.k{display:inline-flex;gap:8px;align-items:center;font-size:13px;color:var(--mu);border:1px solid #ffffff1f;border-radius:99px;padding:7px 14px;background:#ffffff08;backdrop-filter:blur(6px)}
+.k::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.h0 h1{font-size:clamp(46px,10.5vw,140px);line-height:.95;letter-spacing:-.05em;margin:22px 0;text-shadow:0 4px 60px #000a}
+.h0 h1 em{font-style:normal;display:block;font-size:.5em;letter-spacing:-.04em;color:#ffffffd9;margin-top:.2em}
+.h0 p{max-width:560px;margin:0 auto 30px;color:#dbe6e3;font-size:clamp(15px,2vw,18px);text-shadow:0 2px 20px #000}
+.h0 .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.pl{background:#eef3f1;color:#0a0a0b;border-radius:99px;padding:15px 30px;font-weight:700;text-decoration:none;transition:transform .2s}
+.pl.o{background:#1fa88a33;color:#8fe3cc;border:1px solid #1fa88a66}.pl:hover{transform:translateY(-2px) scale(1.04)}
+.mq{overflow:hidden;border-block:1px solid var(--line);background:#091211;padding:16px 0;white-space:nowrap}
+.mq div{display:inline-flex;gap:48px;padding-left:48px;animation:mq 45s linear infinite}.mq span{font-size:14px;color:var(--mu)}.mq b{color:var(--p);margin-right:9px}
+.pcw{max-width:880px;margin:0 auto;border:1px solid var(--line);border-radius:18px;background:#0a1312;box-shadow:0 40px 120px #1fa88a22;overflow:hidden}
+.bar2{display:flex;gap:7px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--mu)}.bar2 s{width:11px;height:11px;border-radius:50%;background:#2c3b38}
+.bd{padding:8px 16px 18px}
+.trk{display:grid;grid-template-columns:28px 170px 1fr;gap:14px;align-items:center;padding:11px 0;border-bottom:1px solid #ffffff0d;font-size:13px;opacity:0;transform:translateX(-24px);transition:.6s}
+.pcw.in .trk{opacity:1;transform:none;transition-delay:calc(var(--i)*.18s)}
+.trk b{color:var(--mu);font-weight:600}.trk span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wf{position:relative;height:30px;display:flex;align-items:center;gap:2px}.wf i{flex:1;background:#ffffff30;border-radius:2px}
+.wf u{position:absolute;top:-4px;bottom:-4px;width:24px;margin-left:-12px;border-radius:6px;background:var(--p);box-shadow:0 0 18px #1fa88acc;opacity:0;transform:scale(.2)}
+.pcw.in .wf u{animation:pop .5s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(var(--i)*.18s + var(--k)*.5s + .8s)}
+.pg{margin-top:18px;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--mu)}.pg div{flex:1;height:8px;background:#15211f;border-radius:9px;overflow:hidden}
+.pg div i{display:block;height:100%;width:0;background:var(--g)}.pcw.in .pg i{width:100%;transition:width 3s 1.6s ease}.pg b{color:var(--ok)}
+.st{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;text-align:center;padding:50px 20px;max-width:1040px;margin:0 auto}
+.st b{display:block;font-size:clamp(52px,8vw,88px);font-weight:800;letter-spacing:-.05em;line-height:1.1;background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent}.st span{color:var(--mu);font-size:14px}
+.ft{text-align:center;font-size:clamp(30px,5.5vw,56px);margin:60px 0 10px}
+section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
+.feat{counter-reset:f}.feat .card{counter-increment:f;transition:transform .35s,border-color .35s}
+.feat .card::before{content:"0" counter(f);display:block;font-size:13px;color:var(--p);font-weight:700;margin-bottom:26px}
+.feat .card:hover{transform:translateY(-6px);border-color:#1fa88a77}
+.plan{transition:transform .35s}.plan:hover{transform:translateY(-6px)}
+.plan.hot{border:1.5px solid transparent;background:linear-gradient(var(--card),var(--card)) padding-box,conic-gradient(from var(--a),#1fa88a,#8fe3cc,#1fa88a22,#1fa88a) border-box;animation:sp 4s linear infinite}
+.rv{opacity:0;transform:translateY(34px);transition:opacity .8s,transform .8s}.rv.in{opacity:1;transform:none}
+@keyframes eq{from{transform:scaleY(.12)}to{transform:scaleY(var(--h,1))}}
+@keyframes fl{0%,100%{transform:translateY(-12px) rotate(-3deg)}50%{transform:translateY(14px) rotate(3deg)}}
+@keyframes br{to{opacity:.6;transform:translate(-50%,-50%) scale(1.08)}}
+@keyframes mq{to{transform:translateX(-50%)}}@keyframes pop{to{opacity:1;transform:scale(1)}}@keyframes sp{to{--a:360deg}}
+@media(max-width:600px){.trk{grid-template-columns:22px 92px 1fr}.nv a:not(.go){display:none}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important}.rv,.trk{opacity:1;transform:none}}
+
+.glow{background:radial-gradient(closest-side,#1fa88a45,transparent 60%),repeating-conic-gradient(#14806a66 0 4deg,#06110f00 4deg 9deg);-webkit-mask-image:radial-gradient(closest-side,#000 30%,transparent 100%);mask-image:radial-gradient(closest-side,#000 30%,transparent 100%);animation:rot 80s linear infinite}
+@keyframes rot{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.usb::before{content:"";position:absolute;left:50%;top:50%;width:min(640px,94vw);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:repeating-conic-gradient(#d5dcde99 0 .7deg,transparent .7deg 6deg);-webkit-mask:radial-gradient(closest-side,transparent 93%,#000 94%);mask:radial-gradient(closest-side,transparent 93%,#000 94%)}
+.h0 h1{background:linear-gradient(180deg,#fff 25%,#a3bcb6);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none}.h0 h1 em{color:transparent}
+.guar a{color:var(--b)}.licbox{max-width:460px;margin:16px auto 0;display:flex;gap:10px;flex-wrap:wrap}
+.licbox input{flex:1;min-width:200px;background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:12px 14px;font:inherit}
+.pmod{position:fixed;inset:0;z-index:50;background:#000b;backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;overflow:auto}
+.pbox{position:relative;width:100%;max-width:420px}
+.pbox h3{font-size:22px}
+.px{position:absolute;top:10px;right:12px;background:none;border:0;color:var(--mu);font-size:28px;line-height:1;cursor:pointer}
+.pbox input[type=email],.pcopy input{width:100%;margin-top:8px;background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:12px 14px;font:inherit}
+.pbox input:focus-visible,.px:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+.perr{color:#f87171;font-size:13px;min-height:18px;margin-top:8px}
+.pqr{display:block;margin:14px auto;background:#fff;padding:10px;border-radius:12px;width:220px;height:220px}
+.pcopy{display:flex;gap:8px}.pcopy .btn{padding:12px 16px;margin-top:8px}.pcopy input{font-size:12px;text-overflow:ellipsis}
+.pkey{font:700 17px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em;background:#0a1211;border:1px dashed var(--p);border-radius:12px;padding:14px;margin-top:12px;word-break:break-all;user-select:all}
+</style>
+</head>
+<body>
+<nav class="nv"><span class="lg"><s><i></i><i></i><i></i></s>MarcaSom</span><div><a href="#como">Como funciona</a><a href="#ferramenta">Ferramenta</a><a href="#planos">Planos</a><a class="go" href="#ferramenta">Testar grátis</a></div></nav>
+<header class="h0"><div class="glow"></div><div class="usb"><svg viewBox="0 0 260 540" aria-hidden="true"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5fd8bb"/><stop offset=".55" stop-color="#1fa88a"/><stop offset="1" stop-color="#0a4f42"/></linearGradient><linearGradient id="g2" x1="0" x2="1"><stop offset="0" stop-color="#8b8b8b"/><stop offset=".5" stop-color="#f1f1f1"/><stop offset="1" stop-color="#7a7a7a"/></linearGradient></defs><rect x="72" width="116" height="170" rx="10" fill="url(#g2)"/><rect x="96" y="30" width="22" height="30" rx="4" fill="#222"/><rect x="142" y="30" width="22" height="30" rx="4" fill="#222"/><rect x="28" y="150" width="204" height="380" rx="52" fill="url(#g1)"/><rect x="40" y="162" width="180" height="356" rx="42" fill="none" stroke="#fff4" stroke-width="2"/><circle cx="130" cy="214" r="15" fill="#0a0a0b"/><text x="130" y="470" text-anchor="middle" font-family="Sora,sans-serif" font-weight="800" font-size="26" fill="#03140f">MARCASOM</text></svg></div><div class="wave" id="wave"></div>
+<div class="copy"><span class="k">Processamento profissional de vinhetas</span>
+<h1>Sua marca.<em>Em cada faixa. No automático.</em></h1>
+<p>Pra quem monta pendrive de paredão e som automotivo: coloque sua vinheta em centenas de músicas em segundos, sem abrir editor.</p>
+<div class="row"><a class="pl" href="#ferramenta">Testar agora</a><a class="pl o" href="#planos">Ver planos</a></div></div></header>
+<div class="mq" aria-hidden="true"><div><span><b>●</b>01 Seresta do Paredão.mp3 · vinheta aplicada</span><span><b>●</b>02 Modão da Estrada.mp3 · vinheta aplicada</span><span><b>●</b>03 Piseiro Pesado.mp3 · vinheta aplicada</span><span><b>●</b>04 Arrocha Brabo.mp3 · vinheta aplicada</span><span><b>●</b>05 Forró de Vaquejada.mp3 · vinheta aplicada</span><span><b>●</b>06 Sofrência Premium.mp3 · vinheta aplicada</span><span><b>●</b>07 Funk do Grave.mp3 · vinheta aplicada</span><span><b>●</b>08 Pagodão Raiz.mp3 · vinheta aplicada</span><span><b>●</b>01 Seresta do Paredão.mp3 · vinheta aplicada</span><span><b>●</b>02 Modão da Estrada.mp3 · vinheta aplicada</span><span><b>●</b>03 Piseiro Pesado.mp3 · vinheta aplicada</span><span><b>●</b>04 Arrocha Brabo.mp3 · vinheta aplicada</span><span><b>●</b>05 Forró de Vaquejada.mp3 · vinheta aplicada</span><span><b>●</b>06 Sofrência Premium.mp3 · vinheta aplicada</span><span><b>●</b>07 Funk do Grave.mp3 · vinheta aplicada</span><span><b>●</b>08 Pagodão Raiz.mp3 · vinheta aplicada</span></div></div>
+<section id="como"><div class="w"><h2>Do repertório ao pendrive</h2><p class="sub">Você joga as músicas, escolhe a vinheta e o MarcaSom acha os trechos calmos de cada faixa.</p>
+<div class="pcw" id="pcw"><div class="bar2"><s></s><s></s><s></s><span style="margin-left:10px">paredao_2026 · MarcaSom</span></div><div class="bd"><div class="trk" style="--i:0"><b>01</b><span>Seresta do Paredão.mp3</span><div class="wf"><u style="left:20%;--k:0"></u><u style="left:49%;--k:1"></u><u style="left:76%;--k:2"></u></div></div><div class="trk" style="--i:1"><b>02</b><span>Modão da Estrada.mp3</span><div class="wf"><u style="left:24%;--k:0"></u><u style="left:52%;--k:1"></u><u style="left:79%;--k:2"></u></div></div><div class="trk" style="--i:2"><b>03</b><span>Piseiro Pesado.mp3</span><div class="wf"><u style="left:18%;--k:0"></u><u style="left:47%;--k:1"></u><u style="left:74%;--k:2"></u></div></div><div class="trk" style="--i:3"><b>04</b><span>Arrocha Brabo.mp3</span><div class="wf"><u style="left:26%;--k:0"></u><u style="left:51%;--k:1"></u><u style="left:80%;--k:2"></u></div></div><div class="trk" style="--i:4"><b>05</b><span>Forró de Vaquejada.mp3</span><div class="wf"><u style="left:22%;--k:0"></u><u style="left:50%;--k:1"></u><u style="left:77%;--k:2"></u></div></div><div class="pg"><span>5 de 5 faixas</span><div><i></i></div><b>ZIP pronto pro pendrive</b></div></div></div></div></section>
+<div class="st"><div><b data-n="3">0</b><span>pontos estratégicos em cada música</span></div><div><b data-n="100" data-s="%">0</b><span>processado no seu navegador</span></div><div><b data-n="18">0</b><span>músicas com vinheta em cerca de 1 minuto</span></div></div>
+<div class="w"><h2 class="ft">Tudo que seu repertório precisa</h2>
+
+<div class="feat rv">
+<div class="card"><h3>Vinheta automática</h3><p>Insere nos pontos mais silenciosos da música, onde o cantor não está cantando.</p></div>
+<div class="card"><h3>3 pontos estratégicos</h3><p>Distribui a vinheta entre os minutos da faixa, longe do início e do fim.</p></div>
+<div class="card"><h3>Processamento em lote</h3><p>Envie o repertório inteiro de uma vez e baixe tudo em um único ZIP.</p></div>
+<div class="card"><h3>Saída leve em MP3</h3><p>Arquivos bem menores, prontos pro pendrive. Ou WAV sem perda, se preferir.</p></div>
+<div class="card"><h3>100% no navegador</h3><p>Suas músicas não sobem pra servidor nenhum. Privacidade total.</p></div>
+<div class="card"><h3>Qualidade profissional</h3><p>Fade, normalização e mixagem sem pausar a música original.</p></div>
+</div>
+</div>
+
+<section id="ferramenta"><div class="w">
+<h2>Coloque sua vinheta em todas as músicas</h2>
+<p class="sub">Três passos. O teste é grátis: processa até 3 músicas e o download é liberado para assinantes.</p>
+<div class="tool rv">
+
+<div class="card step" id="s1"><small>Etapa 1</small><h3>Músicas</h3>
+<div class="drop" id="d1"><b>Arraste suas músicas aqui</b><button class="btn" id="b1" type="button">Selecionar músicas</button><span>MP3, WAV, M4A, FLAC, AAC, OGG. Vários arquivos de uma vez.</span></div>
+<input type="file" id="f1" accept="audio/*" multiple hidden><div class="ok" id="o1"></div></div>
+
+<div class="card step"><small>Etapa 2</small><h3>Sua vinheta</h3>
+<div class="drop" id="d2"><b>Arraste ou selecione a vinheta</b><button class="btn" id="b2" type="button">Selecionar vinheta</button><span>MP3, WAV, M4A ou FLAC.</span></div>
+<input type="file" id="f2" accept="audio/*" hidden><div class="ok" id="o2"></div></div>
+
+<div class="card step"><small>Etapa 3</small><h3>Configurações da vinheta</h3>
+<div class="grp"><span>Posição da vinheta</span><div class="seg" id="pos">
+<button type="button" data-v="auto" aria-pressed="true">Automático (3 pontos)</button><button type="button" data-v="start" aria-pressed="false">Início da música</button><button type="button" data-v="end" aria-pressed="false">Final da música</button><button type="button" data-v="both" aria-pressed="false">Início + final</button></div></div>
+<div class="grp"><div class="vol"><label for="vol">Volume da vinheta</label><output id="vo">90%</output></div><input type="range" id="vol" min="0" max="150" value="90"></div>
+<div class="grp"><span>Fade in</span><div class="seg" id="fi"><button type="button" data-v="0" aria-pressed="true">Desativado</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button></div></div>
+<div class="grp"><span>Fade out</span><div class="seg" id="fo"><button type="button" data-v="0" aria-pressed="true">Desativado</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button></div></div>
+<div class="grp"><span>Espaço entre vinheta e música</span><div class="seg" id="gap"><button type="button" data-v="0" aria-pressed="true">0 s</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button><button type="button" data-v="3" aria-pressed="false">3 s</button></div></div>
+<label class="chk"><input type="checkbox" id="norm"><span>Normalizar volume das músicas<small>Mantém um volume consistente entre as faixas.</small></span></label>
+<label class="chk"><input type="checkbox" id="wav"><span>Manter qualidade original (WAV)<small>Desative para comprimir em MP3 e gerar arquivos bem mais leves.</small></span></label>
+</div>
+
+<div class="card step"><h3>Pré-visualização</h3><small>Ouça o resultado na primeira música antes de processar tudo.</small>
+<div style="margin-top:14px"><button class="btn" id="pv" type="button" disabled>Testar vinheta</button></div><div class="msg" id="pvm"></div></div>
+
+<div class="card free" id="fr"><b>Modo teste:</b> processa até 3 músicas e o download fica bloqueado. <a href="#planos" style="color:var(--b)">Assine</a> para liberar o repertório inteiro e baixar o ZIP.</div>
+
+<div id="act"><button class="btn pri" id="go" type="button" disabled>Aplicar vinheta em todas</button><div class="msg" id="gom">Envie as músicas e a vinheta para começar</div></div>
+
+<div class="card step hide" id="prc"><h3 id="ph">Processando repertório…</h3><small id="pn"></small><div class="bar"><i id="pb"></i></div><div class="list" id="pl"></div><div style="margin-top:14px;text-align:center"><button class="btn" id="cx" type="button">Cancelar</button></div></div>
+
+<div class="card res hide" id="rs"><h3>Pronto! Repertório com vinheta.</h3><p class="msg" id="rm"></p><button class="btn pri" id="dl" type="button">Baixar ZIP</button><div class="msg" id="dlm"></div></div>
+
+</div></div></section>
+
+<section id="planos"><div class="w">
+<h2>Escolha seu plano</h2>
+<p class="sub">Acesso à ferramenta completa, sem limite de músicas. Pagamento por Pix, sem renovação automática.</p>
+<div class="cmp rv"><div class="card a"><b>36 min</b><span>pra colocar vinheta em 18 músicas à mão no editor</span></div><div class="card z"><b>~1 min</b><span>no MarcaSom, com o repertório inteiro em lote</span></div></div>
+<div class="plans rv">
+<div class="card plan"><h3>Mensal</h3><div class="old">&nbsp;</div><div class="price">R$ 29,90<small> /mês</small></div><div class="hint">Menos de R$ 1,00 por dia</div>
+<ul><li>Músicas ilimitadas</li><li>Vinheta em até 3 pontos automáticos</li><li>Processamento em lote (ZIP)</li><li>Saída em MP3 ou WAV</li></ul><a class="btn" href="#" data-plan="Mensal" data-id="mensal">Assinar mensal</a></div>
+<div class="card plan hot"><span class="tag">Mais popular · economize 33%</span><h3>Trimestral</h3><div class="old">de R$ 89,70</div><div class="price">R$ 59,90<small> /3 meses</small></div><div class="hint">R$ 19,97 por mês</div>
+<ul><li>Tudo do Mensal</li><li>Posicionamento inteligente dos pontos</li><li>Normalização de volume</li><li>Prioridade no processamento</li><li>Suporte prioritário</li></ul><a class="btn pri" href="#" data-plan="Trimestral" data-id="trimestral">Quero o trimestral</a></div>
+<div class="card plan"><span class="tag">Melhor custo no longo prazo</span><h3>Vitalício</h3><div class="old">de R$ 299,90</div><div class="price">R$ 129,90<small> pagamento único</small></div><div class="hint">Se paga em menos de 5 meses</div>
+<ul><li>Tudo do Trimestral</li><li>Sem renovação, paga uma vez</li><li>Atualizações futuras incluídas</li><li>Novos recursos em primeira mão</li></ul><a class="btn" href="#" data-plan="Vitalício" data-id="vitalicio">Garantir vitalício</a></div>
+</div>
+<p class="guar">Garantia de 7 dias: se não gostar, devolvemos o valor. Preços de lançamento.<br>Já é assinante? <a href="#" id="lic">Inserir minha chave de acesso</a></p><div class="licbox hide" id="licbox"><input id="lk" placeholder="Cole sua chave de acesso" autocomplete="off"><button class="btn pri" id="lkb" type="button">Ativar</button><div class="msg" id="lkm" style="width:100%"></div></div>
+</div></section>
+
+<footer>MarcaSom · Seus arquivos são processados no seu próprio navegador e nunca são enviados.</footer>
+<div id="pmod" class="pmod hide" role="dialog" aria-modal="true" aria-labelledby="pt"><div class="pbox card">
+<button class="px" id="px" type="button" aria-label="Fechar">×</button>
+<div id="p1"><h3 id="pt">Plano</h3><p class="msg" style="text-align:left;margin:6px 0 14px">Pagamento por Pix. A liberação é automática, em segundos.</p>
+<label for="pmail" style="font-weight:600;font-size:14px">Seu e-mail</label><input id="pmail" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com" maxlength="254">
+<div class="perr" id="pe" role="alert"></div>
+<button class="btn pri" id="pgo" type="button" style="width:100%;margin-top:14px">Gerar Pix</button>
+<p class="msg" style="margin-top:12px">Pagamento processado pela AtenasPay. Não pedimos dados do seu banco.</p></div>
+<div id="p2" class="hide" style="text-align:center"><h3>Pague <span id="pamt"></span> no Pix</h3><p class="msg">Abra o app do banco, escolha Pix e leia o QR Code, ou use o copia e cola.</p>
+<img id="pqr" class="pqr" alt="QR Code Pix" width="220" height="220">
+<div class="pcopy"><input id="pcode" readonly aria-label="Código Pix copia e cola"><button class="btn" id="pcp" type="button">Copiar</button></div>
+<p class="msg">Aguardando pagamento… esta tela libera sozinha. Válido por 30 minutos.</p></div>
+<div id="p3" class="hide" style="text-align:center"><h3>Pagamento confirmado ✓</h3><p class="msg">Sua assinatura já está ativa neste aparelho. Guarde sua chave de acesso:</p>
+<div class="pkey" id="pkey"></div><button class="btn" id="pck" type="button" style="margin-top:12px">Copiar chave</button>
+<p class="msg">Você usa essa chave para entrar em até 2 aparelhos.</p><button class="btn pri" id="pdone" type="button" style="width:100%;margin-top:10px">Começar a usar</button></div>
+</div></div>
+<div id="toast" class="hide" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<script>
+/* ===== CONFIGURAÇÃO DE PAGAMENTO: edite só este bloco =====
+ checkout: link de pagamento de cada plano (Hotmart, Kiwify, Eduzz, AtenasPay, Stripe...).
+ licenseEndpoint: URL da sua API. Recebe POST {"key":"..."} e responde {"valid":true,"plan":"trimestral"}.
+   Sua API cria a chave quando o gateway avisa (webhook) que o pagamento foi aprovado.
+ testKeys: chaves para testar sem backend. Deixe vazio em produção. */
+const CONFIG={freeLimit:3,api:''}; /* '' = mesmo endereço do site (as funções Netlify respondem em /api/...) */
+const PRICES={mensal:'R$ 29,90',trimestral:'R$ 59,90',vitalicio:'R$ 129,90'}; /* só exibição; o valor cobrado é o do servidor */
+const devId=()=>{try{let d=localStorage.getItem('ms_dev');if(!/^[a-f0-9]{32}$/.test(d||'')){d=[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,'0')).join('');localStorage.setItem('ms_dev',d)}return d}catch(e){return '0'.repeat(32)}};
+async function checkKey(k){k=(k||'').trim().toUpperCase();if(!k)return null;
+ const r=await fetch(CONFIG.api+'/api/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,device:devId()})});
+ const j=await r.json();if(j&&j.valid)return j;if(j&&j.reason==='device-limit')throw new Error('device-limit');return null}
+const $=s=>document.querySelector(s),FREE=CONFIG.freeLimit,DUCK=.65,tick=()=>new Promise(r=>setTimeout(r));
+let ctx,songs=[],vin=null,o={pos:'auto',vol:90,fi:0,fo:0,gap:0},zipBlob=null,src=null,stop=false,paid=false;
+const ac=()=>ctx||(ctx=new(window.AudioContext||window.webkitAudioContext)());
+const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hide'),3500)};
+const dec=async f=>ac().decodeAudioData(await f.arrayBuffer());
+
+function seg(id,k,num){document.querySelectorAll(id+' button').forEach(b=>b.onclick=()=>{document.querySelectorAll(id+' button').forEach(x=>x.setAttribute('aria-pressed',x===b));o[k]=num?parseFloat(b.dataset.v):b.dataset.v})}
+seg('#pos','pos');seg('#fi','fi',1);seg('#fo','fo',1);seg('#gap','gap',1);
+$('#vol').oninput=e=>{o.vol=+e.target.value;$('#vo').textContent=o.vol+'%'};
+
+function zone(d,b,f,cb){b.onclick=()=>f.click();f.onchange=()=>cb([...f.files]);
+ d.ondragover=e=>{e.preventDefault();d.classList.add('on')};d.ondragleave=()=>d.classList.remove('on');
+ d.ondrop=e=>{e.preventDefault();d.classList.remove('on');cb([...e.dataTransfer.files].filter(x=>x.type.startsWith('audio')||/\.(mp3|wav|m4a|flac|aac|ogg)$/i.test(x.name)))}}
+zone($('#d1'),$('#b1'),$('#f1'),fs=>{songs=fs;$('#o1').textContent=fs.length?fs.length+' música(s) selecionada(s)':'';upd()});
+zone($('#d2'),$('#b2'),$('#f2'),async fs=>{if(!fs[0])return;$('#o2').textContent='Lendo vinheta…';try{vin=await dec(fs[0]);if(vin.duration>30)toast('Essa vinheta tem mais de 30 segundos. Confira se é o arquivo certo.');$('#o2').textContent='Vinheta: '+fs[0].name+' ('+vin.duration.toFixed(1).replace('.',',')+' s)'}catch(e){vin=null;$('#o2').textContent='Não consegui ler esse arquivo. Tente MP3 ou WAV.'}upd()});
+
+function upd(){const ok=songs.length&&vin;$('#go').disabled=!ok;$('#pv').disabled=!ok;
+ $('#gom').textContent=ok?songs.length+' música(s) prontas para processar':'Envie as músicas e a vinheta para começar';
+ $('#fr').classList.toggle('hide',paid)}
+
+function positions(buf,L,m){
+ const sr=buf.sampleRate,n=buf.length;
+ if(m==='start')return[0];if(m==='end')return[Math.max(0,n-L)];if(m==='both')return[0,Math.max(0,n-L)];
+ const dur=n/sr,hop=Math.floor(sr*.1),d=buf.getChannelData(0),env=[];
+ for(let i=0;i+hop<=n;i+=hop){let s=0;for(let j=0;j<hop;j+=8)s+=d[i+j]*d[i+j];env.push(s)}
+ const w=Math.max(1,Math.ceil(L/hop)),regs=dur<90?[[.4,.6]]:[[.15,.3],[.42,.58],[.7,.85]];
+ return regs.map(([a,b])=>{const lo=Math.floor(env.length*a),hi=Math.floor(env.length*b)-w;let best=lo,bs=Infinity;
+  for(let s=lo;s<=hi;s++){let t=0;for(let k=0;k<w;k++)t+=env[s+k];if(t<bs){bs=t;best=s}}return best*hop})}
+
+function pickPoints(buf,L,m){
+ const sr=buf.sampleRate,n=buf.length,last=Math.max(0,n-L);
+ if(m==='start')return[0];if(m==='end')return[last];if(m==='both')return[0,last];
+ const dur=n/sr,hop=Math.floor(sr*.05),a=buf.getChannelData(0),b=buf.numberOfChannels>1?buf.getChannelData(1):a,env=[];
+ const hp=Math.exp(-2*Math.PI*300/sr),lp=Math.exp(-2*Math.PI*3400/sr);
+ let l1=0,l2=0,s=0,k=0;
+ for(let i=0;i<n;i++){const x=(a[i]+b[i])*.5;l1=(1-hp)*x+hp*l1;l2=(1-lp)*(x-l1)+lp*l2;s+=l2*l2;if(++k===hop){env.push(s/hop);s=0;k=0}}
+ const w=Math.max(1,Math.ceil(L/hop)),edge=Math.floor(10/.05);
+ if(dur<60||env.length<w+2*edge)return[Math.max(0,Math.floor(n/2-L/2))];
+ const regs=dur<120?[[.4,.6]]:[[.15,.3],[.42,.58],[.7,.85]];
+ return regs.map(([x,y])=>{const lo=Math.max(edge,Math.floor(env.length*x)),hi=Math.min(env.length-w-edge,Math.floor(env.length*y)-w);let best=Math.min(lo,hi),bs=Infinity;
+  for(let t=lo;t<=hi;t++){let sum=0,mx=0;for(let q=0;q<w;q++){const e=env[t+q];sum+=e;if(e>mx)mx=e}const sc=sum/w+.5*mx;if(sc<bs){bs=sc;best=t}}
+  return Math.max(0,best*hop)})}
+
+function mix(buf,v){
+ const sr=buf.sampleRate,n=buf.length,L=v.length,ch=(b,c)=>b.getChannelData(Math.min(c,b.numberOfChannels-1));
+ const out=[new Float32Array(ch(buf,0)),new Float32Array(ch(buf,1))],vc=[ch(v,0),ch(v,1)];
+ if($('#norm').checked){let s=0,p=0;const d=out[0];for(let i=0;i<n;i+=4){s+=d[i]*d[i];const a=Math.abs(d[i]);if(a>p)p=a}
+  const g=Math.min(.14/(Math.sqrt(s/(n/4))||.1),.98/(p||1));out.forEach(c=>{for(let i=0;i<n;i++)c[i]*=g})}
+ const pts=pickPoints(buf,L,o.pos),vg=o.vol/100,ramp=Math.floor(.25*sr),fi=o.fi*sr,fo=o.fo*sr;
+ const gp=Math.floor(o.gap*sr);
+ for(const p of pts){const s0=p-gp-ramp,e1=p+L+gp+ramp,d0=Math.max(0,s0),d1=Math.min(n,e1);
+  for(let i=d0;i<d1;i++){const e=Math.min(1,s0>0?(i-s0)/ramp:1,e1<n?(e1-i)/ramp:1),k=i-p;let v=0;
+   if(k>=0&&k<L){let f=1;if(fi&&k<fi)f=k/fi;if(fo&&L-k<fo)f=Math.min(f,(L-k)/fo);v=f*vg}
+   for(let c=0;c<2;c++)out[c][i]=out[c][i]*(1-DUCK*e)+(v?vc[c][k]*v:0)}}
+ let pk=0;for(const c of out)for(let i=0;i<n;i+=2){const a=Math.abs(c[i]);if(a>pk)pk=a}
+ if(pk>.99){const g=.99/pk;out.forEach(c=>{for(let i=0;i<n;i++)c[i]*=g})}
+ return{out,pts,sr}}
+
+async function encode(out,sr){
+ const n=out[0].length,cv=c=>{const a=new Int16Array(n);for(let i=0;i<n;i++){const s=Math.max(-1,Math.min(1,out[c][i]));a[i]=s<0?s*32768:s*32767}return a},l=cv(0),r=cv(1);
+ if($('#wav').checked){const b=new ArrayBuffer(44+n*4),dv=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>dv.setUint8(o+i,c.charCodeAt(0)));
+  w(0,'RIFF');dv.setUint32(4,36+n*4,true);w(8,'WAVEfmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,2,true);dv.setUint32(24,sr,true);dv.setUint32(28,sr*4,true);dv.setUint16(32,4,true);dv.setUint16(34,16,true);w(36,'data');dv.setUint32(40,n*4,true);
+  for(let i=0;i<n;i++){dv.setInt16(44+i*4,l[i],true);dv.setInt16(46+i*4,r[i],true)}return new Blob([b],{type:'audio/wav'})}
+ const enc=new lamejs.Mp3Encoder(2,sr,192),parts=[];
+ for(let i=0,k=0;i<n;i+=1152,k++){const a=enc.encodeBuffer(l.subarray(i,i+1152),r.subarray(i,i+1152));if(a.length)parts.push(new Int8Array(a));if(k%300===0)await tick()}
+ const e=enc.flush();if(e.length)parts.push(new Int8Array(e));return new Blob(parts,{type:'audio/mpeg'})}
+
+$('#pv').onclick=async()=>{
+ if(src){src.stop();src=null;$('#pv').textContent='Testar vinheta';return}
+ $('#pvm').textContent='Preparando…';await tick();
+ try{const buf=await dec(songs[0]),m=mix(buf,vin),ab=ac().createBuffer(2,m.out[0].length,m.sr);
+  ab.copyToChannel(m.out[0],0);ab.copyToChannel(m.out[1],1);
+  await ctx.resume();src=ctx.createBufferSource();src.buffer=ab;src.connect(ctx.destination);
+  const t=Math.max(0,m.pts[0]/m.sr-6);src.start(0,t,Math.min(20,ab.duration-t));
+  src.onended=()=>{src=null;$('#pv').textContent='Testar vinheta'};
+  $('#pv').textContent='Parar';$('#pvm').textContent='Tocando o trecho da vinheta em “'+songs[0].name+'”'}
+ catch(e){$('#pvm').textContent='Não consegui processar essa música.'}};
+
+$('#go').onclick=async()=>{
+ const list=paid?songs:songs.slice(0,FREE),zip=new JSZip(),wav=$('#wav').checked;zipBlob=null;
+ stop=false;$('#cx').textContent='Cancelar';$('#pb').style.width='0';$('#act').classList.add('hide');$('#rs').classList.add('hide');$('#prc').classList.remove('hide');
+ const pl=$('#pl');pl.innerHTML='';const rows=list.map((f,i)=>{const d=document.createElement('div');d.innerHTML='<span></span><em>Na fila</em>';d.firstChild.textContent=(i+1)+'. '+f.name;pl.appendChild(d);return d});
+ $('#prc').scrollIntoView({behavior:'smooth',block:'center'});let done=0,fail=0;
+ for(let i=0;i<list.length;i++){if(stop)break;
+  $('#pn').textContent='Música '+(i+1)+' de '+list.length;rows[i].lastChild.textContent='Processando…';await tick();
+  try{const buf=await dec(list[i]),m=mix(buf,vin),blob=paid?await encode(m.out,m.sr):null;
+   if(paid){const base=list[i].name.replace(/\.[^.]+$/,''),ext=wav?'.wav':'.mp3';let nm=base,q=1;while(zip.file(nm+ext))nm=base+' ('+(++q)+')';zip.file(nm+ext,blob)}rows[i].className='d';rows[i].lastChild.textContent='Concluída';done++}
+  catch(e){rows[i].lastChild.textContent='Erro';fail++}
+  $('#pb').style.width=Math.round((i+1)/list.length*100)+'%';rows[i].scrollIntoView({block:'nearest'})}
+ if(stop){$('#prc').classList.add('hide');$('#act').classList.remove('hide');toast('Processamento cancelado.');return}
+ if(!done){$('#pn').textContent='Nenhuma música foi processada. Confira os arquivos.';$('#act').classList.remove('hide');return}
+ if(paid)zipBlob=await zip.generateAsync({type:'blob'});
+ $('#prc').classList.add('hide');$('#rs').classList.remove('hide');
+ $('#rs h3').textContent=paid?'Pronto! Repertório com vinheta.':'Teste concluído!';$('#dl').textContent=paid?'Baixar ZIP':'Assinar para baixar';$('#rm').textContent=paid?done+' música(s) prontas'+(fail?', '+fail+' com erro':'')+'. O ZIP tem '+(zipBlob.size/1048576).toFixed(1).replace('.',',')+' MB.':'A vinheta funcionou em '+done+' música(s). No modo teste o download fica bloqueado: assine para baixar o ZIP.';
+ $('#rs').scrollIntoView({behavior:'smooth',block:'center'});$('#act').classList.remove('hide')};
+
+$('#dl').onclick=async()=>{if(!paid){$('#planos').scrollIntoView({behavior:'smooth'});return}if(!zipBlob)return;const name='repertorio-com-vinheta.zip';
+ try{const d=await claude.use('downloads');
+  if(d){await d.save({filename:name,data:zipBlob});$('#dlm').textContent='';return}}
+ catch(e){if(e&&e.code==='declined')return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(zipBlob);a.download=name;a.click();$('#dlm').textContent='Se o download não começou, abra a página direto no navegador.'};
+
+$('#cx').onclick=()=>{stop=true;$('#cx').textContent='Cancelando…'};
+/* ===== Pagamento Pix ===== */
+let pay={plan:null,order:null,timer:null,until:0};
+const pm=$('#pmod'),pEl=id=>$('#'+id);
+function pClose(){clearInterval(pay.timer);pay.timer=null;pm.classList.add('hide');document.body.style.overflow=''}
+function pStep(n){['p1','p2','p3'].forEach((id,i)=>pEl(id).classList.toggle('hide',i+1!==n))}
+document.querySelectorAll('[data-plan]').forEach(a=>a.onclick=e=>{e.preventDefault();pay.plan=a.dataset.id;
+ pEl('pt').textContent='Plano '+a.dataset.plan+' · '+PRICES[pay.plan];pEl('pe').textContent='';pStep(1);pm.classList.remove('hide');document.body.style.overflow='hidden';pEl('pmail').focus()});
+$('#px').onclick=pClose;pm.addEventListener('click',e=>{if(e.target===pm)pClose()});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!pm.classList.contains('hide'))pClose()});
+$('#pgo').onclick=async()=>{const email=pEl('pmail').value.trim(),err=pEl('pe');err.textContent='';
+ if(!/^\S+@\S+\.\S{2,}$/.test(email)){err.textContent='Digite um e-mail válido.';return}
+ const b=$('#pgo');b.disabled=true;b.textContent='Gerando Pix…';
+ try{const r=await fetch(CONFIG.api+'/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:pay.plan,email})});
+  const j=await r.json();if(!r.ok)throw new Error(j.error||'Erro ao gerar o Pix.');
+  pay.order=j.orderId;pay.until=Date.now()+j.expiresInMin*60000;
+  pEl('pqr').src=j.qrImage;pEl('pcode').value=j.qr;pEl('pamt').textContent=PRICES[pay.plan];pStep(2);
+  try{sessionStorage.setItem('ms_order',pay.order)}catch(_){}
+  pPoll()}
+ catch(x){const net=x instanceof TypeError;
+  if(net)console.error('Falha de rede ao chamar '+CONFIG.api+'/api/checkout. Confira se o site foi publicado pelo Git/CLI (arrastar a pasta nao publica as funcoes) e abra /health no seu site.',x);
+  err.textContent=net?'Não consegui falar com o servidor de pagamentos. Tente de novo em instantes.':(x.message||'Erro ao gerar o Pix.')}
+ b.disabled=false;b.textContent='Gerar Pix'};
+$('#pcp').onclick=async()=>{const c=pEl('pcode');try{await navigator.clipboard.writeText(c.value)}catch(_){c.select();document.execCommand('copy')}toast('Código Pix copiado. Cole no app do seu banco.')};
+function pPoll(){clearInterval(pay.timer);let busy=false;
+ pay.timer=setInterval(async()=>{if(busy)return;busy=true;
+  try{const r=await fetch(CONFIG.api+'/api/order/'+pay.order,{cache:'no-store'}),j=await r.json();
+   if(j.status==='approved'&&j.key){clearInterval(pay.timer);pEl('pkey').textContent=j.key;pStep(3);
+    try{if(await checkKey(j.key))setPaid(j.key,1)}catch(e){toast('Pagamento aprovado, mas esta chave já atingiu o limite de aparelhos.')}}
+   else if(['cancelled','rejected','expired','flagged'].includes(j.status)){clearInterval(pay.timer);pEl('pe').textContent='';pStep(1);pEl('pe').textContent='Esse Pix não foi concluído. Gere outro.'}
+   else if(Date.now()>pay.until+60000){clearInterval(pay.timer);pStep(1);pEl('pe').textContent='O Pix expirou. Gere um novo.'}}
+  catch(_){}
+  busy=false},3000)}
+$('#pck').onclick=async()=>{try{await navigator.clipboard.writeText(pEl('pkey').textContent);toast('Chave copiada. Guarde em local seguro.')}catch(_){}};
+$('#pdone').onclick=pClose;
+function setPaid(k,q){paid=true;try{localStorage.setItem('ms_lic',JSON.stringify({key:k}))}catch(e){}$('#lic').textContent='Assinatura ativa ✓ (trocar chave)';upd();if(!q)toast('Assinatura ativada. Download liberado!')}
+$('#lic').onclick=e=>{e.preventDefault();$('#licbox').classList.toggle('hide')};
+$('#lkb').onclick=async()=>{const k=$('#lk').value.trim();$('#lkm').textContent='Verificando…';try{if(await checkKey(k)){setPaid(k);$('#lkm').textContent='';$('#licbox').classList.add('hide')}else $('#lkm').textContent='Chave inválida. Confira e tente de novo.'}catch(e){$('#lkm').textContent=e&&e.message==='device-limit'?'Essa chave já está em 2 aparelhos. Fale com o suporte para liberar outro.':'Não consegui verificar agora. Tente de novo em instantes.'}};
+(async()=>{let v=null;try{v=JSON.parse(localStorage.getItem('ms_lic')||'null')}catch(e){}
+ if(v&&v.key){let ok;try{ok=await checkKey(v.key)}catch(e){ok=true}if(ok)setPaid(v.key,1);else try{localStorage.removeItem('ms_lic')}catch(e){}}upd()})();
+</script>
+<script>
+(()=>{const R=(a,b)=>a+Math.random()*(b-a),w=document.getElementById('wave');
+for(let i=0;i<72;i++){const e=document.createElement('i');e.style.cssText='--h:'+R(.15,1).toFixed(2)+';--d:'+(i*-.09).toFixed(2)+'s';w.appendChild(e)}
+document.querySelectorAll('.wf').forEach(x=>{let h='';for(let i=0;i<70;i++)h+='<i style="height:'+Math.round(R(18,100))+'%"></i>';x.insertAdjacentHTML('afterbegin',h)});
+function cnt(el){const n=+el.dataset.n,s=el.dataset.s||'',t0=performance.now();(function f(t){const p=Math.min(1,(t-t0)/1400);el.textContent=Math.round(n*(1-Math.pow(1-p,3)))+s;if(p<1)requestAnimationFrame(f)})(t0)}
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);if(e.target.dataset.n)cnt(e.target)}}),{threshold:.2});
+document.querySelectorAll('.rv,#pcw,[data-n]').forEach(e=>io.observe(e));
+const u=document.querySelector('.usb'),cp=document.querySelector('.copy');let mx=0,my=0;
+function tk(){const y=scrollY;u.style.transform='translate('+(mx*-30)+'px,'+(y*.18+my*-20)+'px) rotate('+(mx*6)+'deg)';cp.style.transform='translateY('+(y*.08)+'px)';cp.style.opacity=Math.max(0,1-y/650)}
+addEventListener('pointermove',e=>{mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5;tk()});addEventListener('scroll',tk,{passive:true});tk()})();
+</script>
+</body>
+</html>
