@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>MarcaSom · Painel de clientes</title>
+<style>
+:root{--bg:#060d0c;--card:#0b1514;--line:#1c2e2b;--tx:#eef3f1;--mu:#9fb0ac;--p:#1fa88a;--b:#8fe3cc;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--tx);font:400 15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:980px;margin:0 auto;padding:20px}
+h1{font-size:22px;margin:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.btn{border:1px solid var(--line);background:transparent;color:var(--tx);font:600 14px system-ui,-apple-system,"Segoe UI",sans-serif;padding:9px 14px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:var(--p)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.pri{background:var(--p);border-color:transparent;color:#03140f}
+.btn.dng{border-color:#f8717155;color:var(--bad)}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--b);outline-offset:2px}
+input[type=password],input[type=search]{background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:11px 13px;font:inherit;width:100%}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+#login{max-width:420px;margin:12vh auto 0}
+#login p{color:var(--mu);margin:6px 0 14px}
+.err{color:var(--bad);min-height:20px;margin-top:8px;font-size:14px}
+.hide{display:none!important}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.stats b{display:block;font-size:26px;line-height:1.1}.stats span{color:var(--mu);font-size:13px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.bar input{flex:1;min-width:200px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}.tabs .btn[aria-pressed=true]{background:#1fa88a22;border-color:var(--p)}
+.cu{margin-bottom:12px}
+.cu h2{font-size:17px;margin:0}.cu .em{color:var(--mu);word-break:break-all}
+.cu .ct{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.cu .ac{display:flex;gap:8px;flex-wrap:wrap}
+.cu a{color:var(--b)}
+.pu{display:grid;grid-template-columns:1.1fr 1.3fr .9fr 1fr;gap:6px 12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:14px}
+.pu small{display:block;color:var(--mu);font-size:12px}
+.tg{display:inline-block;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700}
+.tg.ok{background:#34d39922;color:var(--ok)}.tg.bad{background:#f8717122;color:var(--bad)}.tg.mu{background:#9fb0ac22;color:var(--mu)}.tg.warn{background:#fbbf2422;color:var(--warn)}
+.ord{width:100%;border-collapse:collapse;font-size:14px}.ord th,.ord td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}.ord th{color:var(--mu);font-weight:600;font-size:12px}
+.sc{overflow-x:auto}
+.empty{color:var(--mu);text-align:center;padding:30px 0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--card);border:1px solid var(--p);padding:11px 16px;border-radius:12px;max-width:90vw;z-index:9}
+@media(max-width:640px){.pu{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="w">
+
+<div id="login" class="card">
+<h1>Painel de clientes</h1>
+<p>Digite o <b>ADMIN_TOKEN</b> (o mesmo cadastrado nas variáveis da Netlify).</p>
+<input id="tok" type="password" autocomplete="current-password" placeholder="ADMIN_TOKEN" aria-label="ADMIN_TOKEN">
+<div class="err" id="lerr" role="alert"></div>
+<button class="btn pri" id="enter" type="button" style="width:100%;margin-top:6px">Entrar</button>
+</div>
+
+<div id="app" class="hide">
+<div class="top"><h1>Clientes do MarcaSom</h1><div style="display:flex;gap:8px"><button class="btn" id="reload" type="button">Atualizar</button><button class="btn" id="csv" type="button">Exportar CSV</button><button class="btn" id="out" type="button">Sair</button></div></div>
+<div class="stats" id="stats"></div>
+<div class="tabs"><button class="btn" id="t1" type="button" aria-pressed="true">Clientes</button><button class="btn" id="t2" type="button" aria-pressed="false">Pedidos (inclui não pagos)</button></div>
+<div class="bar"><input id="q" type="search" placeholder="Buscar por nome, e-mail ou WhatsApp" aria-label="Buscar"></div>
+<div id="v1"></div>
+<div id="v2" class="hide card sc"></div>
+</div>
+
+</div>
+<div id="toast" class="hide" role="status"></div>
+<script>
+const $=s=>document.querySelector(s);
+let TOKEN='',DATA=null,ORDERS=null,MAXDEV=2;
+try{TOKEN=sessionStorage.getItem('ms_admin')||''}catch(e){}
+const PLAN={mensal:'Mensal',trimestral:'Trimestral',vitalicio:'Vitalício'};
+const dt=ms=>ms?new Date(ms).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
+const dd=ms=>ms?new Date(ms).toLocaleDateString('pt-BR'):'—';
+const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hide'),3500)};
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
+
+async function api(path,method,body){
+ const r=await fetch(path,{method:method||'GET',headers:{'Authorization':'Bearer '+TOKEN,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+ if(r.status===401){const e=new Error('401');e.code=401;throw e}
+ if(r.status===429){const e=new Error('Muitas tentativas. Espere um minuto.');e.code=429;throw e}
+ if(!r.ok)throw new Error('Erro '+r.status);
+ return r.json()}
+
+function status(p){if(p.revoked)return['Revogada','bad'];if(p.expires_at&&p.expires_at<Date.now())return['Expirada','warn'];return[p.expires_at?'Ativa':'Ativa · vitalício','ok']}
+const digits=s=>String(s||'').replace(/\D/g,'');
+function waLink(phone){let d=digits(phone);if(!d)return null;if(!String(phone).trim().startsWith('+')&&d.length<=11)d='55'+d;return 'https://wa.me/'+d}
+
+async function load(){
+ DATA=await api('/api/admin/customers');MAXDEV=DATA.maxDevices||2;ORDERS=null;
+ $('#login').classList.add('hide');$('#app').classList.remove('hide');draw()}
+
+function draw(){
+ const q=$('#q').value.trim().toLowerCase(),all=DATA.customers;
+ const list=all.filter(c=>!q||(c.name+' '+c.email+' '+c.phone).toLowerCase().includes(q));
+ const act=all.reduce((n,c)=>n+c.purchases.filter(p=>status(p)[1]==='ok').length,0);
+ const st=$('#stats');st.innerHTML='';
+ [[all.length,'clientes'],[act,'assinaturas ativas'],[all.reduce((n,c)=>n+c.purchases.length,0),'compras no total']].forEach(([n,l])=>{const d=el('div','card');d.append(el('b','',n),el('span','',l));st.appendChild(d)});
+ const v=$('#v1');v.innerHTML='';
+ if(!list.length){v.appendChild(el('div','empty',all.length?'Ninguém encontrado nessa busca.':'Ainda não há compras aprovadas.'));return}
+ list.forEach(c=>{
+  const card=el('div','card cu'),top=el('div','ct'),l=el('div');
+  l.append(el('h2','',c.name||'(sem nome — compra antiga)'),el('div','em',c.email));
+  const w=waLink(c.phone);
+  if(c.phone){const p=el('div','em',c.phone+' ');if(w){const a=el('a','','Chamar no WhatsApp');a.href=w;a.target='_blank';a.rel='noopener noreferrer';p.appendChild(a)}l.appendChild(p)}
+  const ac=el('div','ac'),b1=el('button','btn','Zerar aparelhos'),b2=el('button','btn dng','Revogar chaves');
+  b1.type=b2.type='button';
+  b1.onclick=()=>act1('reset-devices',c,'Zerar os aparelhos de '+c.email+'? Ele poderá entrar em novos aparelhos.');
+  b2.onclick=()=>act1('revoke',c,'Revogar TODAS as chaves de '+c.email+'? Use em caso de reembolso. Não dá para desfazer por aqui.');
+  ac.append(b1,b2);top.append(l,ac);card.appendChild(top);
+  c.purchases.slice().reverse().forEach(p=>{
+   const [txt,cls]=status(p),row=el('div','pu');
+   const a=el('div');a.append(el('b','',PLAN[p.plan]||p.plan),el('small','','Comprou em '+dt(p.created_at)));
+   const b=el('div');b.append(el('span','tg '+cls,txt),el('small','',p.expires_at?'Vence em '+dd(p.expires_at):'Sem vencimento'));
+   const cc=el('div');cc.append(el('b','',p.devices+' de '+MAXDEV),el('small','','aparelhos em uso'));
+   const d=el('div');d.append(el('b','',p.hint?'…'+p.hint:'—'),el('small','','final da chave'));
+   row.append(a,b,cc,d);card.appendChild(row)});
+  v.appendChild(card)})}
+
+async function act1(kind,c,msg){
+ if(!confirm(msg))return;
+ try{const r=await api('/api/admin/'+kind,'POST',{email:c.email});
+  toast(kind==='revoke'?r.revoked+' chave(s) revogada(s).':r.cleared+' aparelho(s) liberado(s).');await load()}
+ catch(e){toast(e.message||'Não consegui concluir.')}}
+
+async function showOrders(){
+ const v=$('#v2');v.innerHTML='';v.appendChild(el('div','empty','Carregando…'));
+ try{ORDERS=ORDERS||await api('/api/admin/orders')}catch(e){v.innerHTML='';v.appendChild(el('div','empty',e.message));return}
+ const q=$('#q').value.trim().toLowerCase(),rows=ORDERS.filter(o=>!q||((o.name||'')+' '+o.email+' '+(o.phone||'')).toLowerCase().includes(q));
+ v.innerHTML='';if(!rows.length){v.appendChild(el('div','empty','Nenhum pedido.'));return}
+ const ST={approved:['Pago','ok'],pending:['Aguardando Pix','mu'],expired:['Expirado','warn'],flagged:['Suspeito (não liberado)','bad'],refunded:['Reembolsado','bad']};
+ const t=el('table','ord'),h=el('tr');['Data','Cliente','Plano','Valor','Situação'].forEach(x=>h.appendChild(el('th','',x)));t.appendChild(h);
+ rows.forEach(o=>{const r=el('tr'),s=ST[o.status]||[o.status,'mu'];
+  const c=el('td');c.append(el('b','',o.name||'(sem nome)'),el('div','',o.email));if(o.phone)c.appendChild(el('div','',o.phone));
+  const sd=el('td');sd.appendChild(el('span','tg '+s[1],s[0]));
+  r.append(el('td','',dt(o.created_at)),c,el('td','',PLAN[o.plan]||o.plan),el('td','','R$ '+Number(o.amount).toFixed(2).replace('.',',')),sd);t.appendChild(r)});
+ v.appendChild(t)}
+
+function tab(n){$('#t1').setAttribute('aria-pressed',n===1);$('#t2').setAttribute('aria-pressed',n===2);$('#v1').classList.toggle('hide',n!==1);$('#v2').classList.toggle('hide',n!==2);if(n===2)showOrders();else if(DATA)draw()}
+$('#t1').onclick=()=>tab(1);$('#t2').onclick=()=>tab(2);
+$('#q').oninput=()=>{if(!$('#v2').classList.contains('hide'))showOrders();else if(DATA)draw()};
+$('#reload').onclick=async()=>{try{await load();toast('Atualizado.')}catch(e){toast(e.message)}};
+
+/* CSV com ; (Excel em português). Células que começam com = + - @ ganham um apóstrofo para não virarem fórmula. */
+const cell=v=>{v=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+$('#csv').onclick=()=>{if(!DATA)return;
+ const rows=[['Nome','E-mail','WhatsApp','Plano','Comprou em','Vence em','Situação','Aparelhos em uso','Final da chave']];
+ DATA.customers.forEach(c=>c.purchases.forEach(p=>rows.push([c.name,c.email,c.phone,PLAN[p.plan]||p.plan,dt(p.created_at),p.expires_at?dd(p.expires_at):'sem vencimento',status(p)[0],p.devices,p.hint?'…'+p.hint:''])));
+ const blob=new Blob(['\ufeff'+rows.map(r=>r.map(cell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='clientes-marcasom.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};
+
+function logout(){TOKEN='';try{sessionStorage.removeItem('ms_admin')}catch(e){}DATA=null;ORDERS=null;$('#app').classList.add('hide');$('#login').classList.remove('hide');$('#tok').value=''}
+$('#out').onclick=logout;
+async function enter(){TOKEN=$('#tok').value.trim();$('#lerr').textContent='';if(!TOKEN){$('#lerr').textContent='Digite o token.';return}
+ const b=$('#enter');b.disabled=true;b.textContent='Entrando…';
+ try{await load();try{sessionStorage.setItem('ms_admin',TOKEN)}catch(e){}$('#tok').value=''}
+ catch(e){TOKEN='';$('#lerr').textContent=e.code===401?'Token incorreto.':(e.message||'Não consegui entrar.')}
+ b.disabled=false;b.textContent='Entrar'}
+$('#enter').onclick=enter;$('#tok').onkeydown=e=>{if(e.key==='Enter')enter()};
+if(TOKEN)load().catch(()=>{TOKEN='';try{sessionStorage.removeItem('ms_admin')}catch(e){}});
+</script>
+</body>
+</html>

@@ -144,11 +144,27 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 .pbox{position:relative;width:100%;max-width:420px}
 .pbox h3{font-size:22px}
 .px{position:absolute;top:10px;right:12px;background:none;border:0;color:var(--mu);font-size:28px;line-height:1;cursor:pointer}
-.pbox input[type=email],.pcopy input{width:100%;margin-top:8px;background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:12px 14px;font:inherit}
+.pbox input[type=email],.pbox input[type=text],.pbox input[type=tel],.pcopy input{width:100%;margin-top:8px;background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:12px 14px;font:inherit}
 .pbox input:focus-visible,.px:focus-visible{outline:2px solid var(--b);outline-offset:2px}
 .perr{color:#f87171;font-size:13px;min-height:18px;margin-top:8px}
 .pqr{display:block;margin:14px auto;background:#fff;padding:10px;border-radius:12px;width:220px;height:220px}
 .pcopy{display:flex;gap:8px}.pcopy .btn{padding:12px 16px;margin-top:8px}.pcopy input{font-size:12px;text-overflow:ellipsis}
+.pfl{display:block;font-weight:600;font-size:14px;margin-top:12px}.pfl small{font-weight:400;color:var(--mu)}
+.man{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.man select,.man .tin{background:#0a1211;border:1px solid var(--line);color:var(--tx);border-radius:10px;padding:10px 12px;font:inherit;max-width:100%}
+.man select{width:100%;margin-top:6px}
+.wfx{position:relative;margin-top:12px;height:120px;border:1px solid var(--line);border-radius:12px;background:#091211;overflow:hidden;cursor:crosshair;user-select:none;-webkit-user-select:none}
+.wfx canvas{position:absolute;inset:0;width:100%;height:100%}
+#wmk{position:absolute;inset:0;pointer-events:none}
+.mk{position:absolute;top:0;bottom:0;min-width:3px;background:#1fa88a44;border-left:3px solid var(--b);cursor:ew-resize;touch-action:none;pointer-events:auto}
+.mk::after{content:"";position:absolute;left:-12px;top:0;bottom:0;width:22px}
+.mk.act{background:#1fa88a80;border-left-color:#fff}
+.mk b{position:absolute;top:3px;left:5px;font:800 11px Sora,sans-serif;color:#03140f;background:var(--b);border-radius:6px;padding:1px 6px}
+.mrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.mrow .btn{padding:10px 14px;font-size:13px}
+.mli{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:14px}
+.mli span{min-width:62px;font-weight:600}.mli.act span{color:var(--b)}
+.mli .tin{width:112px}.mli .btn{padding:8px 12px;font-size:13px}
 .pkey{font:700 17px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.04em;background:#0a1211;border:1px dashed var(--p);border-radius:12px;padding:14px;margin-top:12px;word-break:break-all;user-select:all}
 </style>
 </head>
@@ -168,6 +184,7 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 <div class="feat rv">
 <div class="card"><h3>Vinheta automática</h3><p>Insere nos pontos mais silenciosos da música, onde o cantor não está cantando.</p></div>
 <div class="card"><h3>3 pontos estratégicos</h3><p>Distribui a vinheta entre os minutos da faixa, longe do início e do fim.</p></div>
+<div class="card"><h3>Posição manual</h3><p>Quer escolher o ponto exato? Clique na onda da música e marque onde a vinheta entra, quantas vezes quiser.</p></div>
 <div class="card"><h3>Processamento em lote</h3><p>Envie o repertório inteiro de uma vez e baixe tudo em um único ZIP.</p></div>
 <div class="card"><h3>Saída leve em MP3</h3><p>Arquivos bem menores, prontos pro pendrive. Ou WAV sem perda, se preferir.</p></div>
 <div class="card"><h3>100% no navegador</h3><p>Suas músicas não sobem pra servidor nenhum. Privacidade total.</p></div>
@@ -190,7 +207,17 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 
 <div class="card step"><small>Etapa 3</small><h3>Configurações da vinheta</h3>
 <div class="grp"><span>Posição da vinheta</span><div class="seg" id="pos">
-<button type="button" data-v="auto" aria-pressed="true">Automático (3 pontos)</button><button type="button" data-v="start" aria-pressed="false">Início da música</button><button type="button" data-v="end" aria-pressed="false">Final da música</button><button type="button" data-v="both" aria-pressed="false">Início + final</button></div></div>
+<button type="button" data-v="auto" aria-pressed="true">Automático (3 pontos)</button><button type="button" data-v="start" aria-pressed="false">Início da música</button><button type="button" data-v="end" aria-pressed="false">Final da música</button><button type="button" data-v="both" aria-pressed="false">Início + final</button><button type="button" data-v="manual" aria-pressed="false">Manual (você escolhe)</button></div>
+<div class="man hide" id="man">
+<label for="msong" style="font-weight:600;font-size:14px">Música</label><select id="msong"></select>
+<div class="mrow"><button class="btn" id="mprev" type="button">◀ Anterior</button><button class="btn" id="mnext" type="button">Próxima ▶</button></div>
+<div class="wfx" id="wfx" role="application" aria-label="Forma de onda da música. Clique para marcar onde a vinheta entra."><canvas id="wcv" width="1000" height="120"></canvas><div id="wmk"></div></div>
+<small style="display:block;margin-top:6px;color:var(--mu)">Clique na onda para marcar um ponto. Arraste a marca para ajustar. Trechos baixos na onda são os mais calmos. A faixa clara mostra o tamanho da vinheta.</small>
+<div id="mlist"></div>
+<div class="mrow"><input class="tin" id="mtime" inputmode="decimal" placeholder="ex.: 1:05" aria-label="Tempo do novo ponto" style="width:112px"><button class="btn" id="madd" type="button">Adicionar ponto</button><button class="btn" id="mauto" type="button">Sugerir automático</button><button class="btn" id="mclr" type="button">Limpar desta música</button></div>
+<div class="mrow"><button class="btn" id="mpv" type="button" disabled>Ouvir com a vinheta</button><button class="btn" id="mcopy" type="button">Copiar estes pontos para todas</button></div>
+<div class="msg" id="mmsg" style="text-align:left"></div>
+</div></div>
 <div class="grp"><div class="vol"><label for="vol">Volume da vinheta</label><output id="vo">90%</output></div><input type="range" id="vol" min="0" max="150" value="90"></div>
 <div class="grp"><span>Fade in</span><div class="seg" id="fi"><button type="button" data-v="0" aria-pressed="true">Desativado</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button></div></div>
 <div class="grp"><span>Fade out</span><div class="seg" id="fo"><button type="button" data-v="0" aria-pressed="true">Desativado</button><button type="button" data-v=".5" aria-pressed="false">0,5 s</button><button type="button" data-v="1" aria-pressed="false">1 s</button><button type="button" data-v="2" aria-pressed="false">2 s</button></div></div>
@@ -232,6 +259,10 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 <button class="px" id="px" type="button" aria-label="Fechar">×</button>
 <div id="p1"><h3 id="pt">Plano</h3><p class="msg" style="text-align:left;margin:6px 0 14px">Pagamento por Pix. A liberação é automática, em segundos.</p>
 <label for="pmail" style="font-weight:600;font-size:14px">Seu e-mail</label><input id="pmail" type="email" inputmode="email" autocomplete="email" placeholder="voce@email.com" maxlength="254">
+<label for="pname" class="pfl">Seu nome</label><input id="pname" type="text" autocomplete="name" maxlength="80" placeholder="Nome completo">
+<label for="pphone" class="pfl">WhatsApp <small>(opcional, para suporte)</small></label><input id="pphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="(00) 00000-0000">
+<p class="msg" style="text-align:left;margin:8px 0 0">Usamos nome e e-mail só para identificar sua assinatura e dar suporte.</p>
+<div id="pts" style="margin-top:12px"></div>
 <div class="perr" id="pe" role="alert"></div>
 <button class="btn pri" id="pgo" type="button" style="width:100%;margin-top:14px">Gerar Pix</button>
 <p class="msg" style="margin-top:12px">Pagamento processado pela AtenasPay. Não pedimos dados do seu banco.</p></div>
@@ -253,7 +284,7 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
  licenseEndpoint: URL da sua API. Recebe POST {"key":"..."} e responde {"valid":true,"plan":"trimestral"}.
    Sua API cria a chave quando o gateway avisa (webhook) que o pagamento foi aprovado.
  testKeys: chaves para testar sem backend. Deixe vazio em produção. */
-const CONFIG={freeLimit:3,api:''}; /* '' = mesmo endereço do site (as funções Netlify respondem em /api/...) */
+const CONFIG={freeLimit:3,api:'',turnstile:''}; /* turnstile: cole aqui a SITE KEY do Cloudflare Turnstile (opcional, anti-robô) */ /* '' = mesmo endereço do site (as funções Netlify respondem em /api/...) */
 const PRICES={mensal:'R$ 29,90',trimestral:'R$ 59,90',vitalicio:'R$ 129,90'}; /* só exibição; o valor cobrado é o do servidor */
 const devId=()=>{try{let d=localStorage.getItem('ms_dev');if(!/^[a-f0-9]{32}$/.test(d||'')){d=[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,'0')).join('');localStorage.setItem('ms_dev',d)}return d}catch(e){return '0'.repeat(32)}};
 async function checkKey(k){k=(k||'').trim().toUpperCase();if(!k)return null;
@@ -272,10 +303,10 @@ $('#vol').oninput=e=>{o.vol=+e.target.value;$('#vo').textContent=o.vol+'%'};
 function zone(d,b,f,cb){b.onclick=()=>f.click();f.onchange=()=>cb([...f.files]);
  d.ondragover=e=>{e.preventDefault();d.classList.add('on')};d.ondragleave=()=>d.classList.remove('on');
  d.ondrop=e=>{e.preventDefault();d.classList.remove('on');cb([...e.dataTransfer.files].filter(x=>x.type.startsWith('audio')||/\.(mp3|wav|m4a|flac|aac|ogg)$/i.test(x.name)))}}
-zone($('#d1'),$('#b1'),$('#f1'),fs=>{songs=fs;$('#o1').textContent=fs.length?fs.length+' música(s) selecionada(s)':'';upd()});
+zone($('#d1'),$('#b1'),$('#f1'),fs=>{songs=fs;$('#o1').textContent=fs.length?fs.length+' música(s) selecionada(s)':'';manFill();upd()});
 zone($('#d2'),$('#b2'),$('#f2'),async fs=>{if(!fs[0])return;$('#o2').textContent='Lendo vinheta…';try{vin=await dec(fs[0]);if(vin.duration>30)toast('Essa vinheta tem mais de 30 segundos. Confira se é o arquivo certo.');$('#o2').textContent='Vinheta: '+fs[0].name+' ('+vin.duration.toFixed(1).replace('.',',')+' s)'}catch(e){vin=null;$('#o2').textContent='Não consegui ler esse arquivo. Tente MP3 ou WAV.'}upd()});
 
-function upd(){const ok=songs.length&&vin;$('#go').disabled=!ok;$('#pv').disabled=!ok;
+function upd(){const ok=songs.length&&vin;$('#go').disabled=!ok;$('#pv').disabled=!ok;$('#mpv').disabled=!ok;if(ed.dur){render();manCount()}
  $('#gom').textContent=ok?songs.length+' música(s) prontas para processar':'Envie as músicas e a vinheta para começar';
  $('#fr').classList.toggle('hide',paid)}
 
@@ -302,12 +333,12 @@ function pickPoints(buf,L,m){
   for(let t=lo;t<=hi;t++){let sum=0,mx=0;for(let q=0;q<w;q++){const e=env[t+q];sum+=e;if(e>mx)mx=e}const sc=sum/w+.5*mx;if(sc<bs){bs=sc;best=t}}
   return Math.max(0,best*hop)})}
 
-function mix(buf,v){
+function mix(buf,v,file){
  const sr=buf.sampleRate,n=buf.length,L=v.length,ch=(b,c)=>b.getChannelData(Math.min(c,b.numberOfChannels-1));
  const out=[new Float32Array(ch(buf,0)),new Float32Array(ch(buf,1))],vc=[ch(v,0),ch(v,1)];
  if($('#norm').checked){let s=0,p=0;const d=out[0];for(let i=0;i<n;i+=4){s+=d[i]*d[i];const a=Math.abs(d[i]);if(a>p)p=a}
   const g=Math.min(.14/(Math.sqrt(s/(n/4))||.1),.98/(p||1));out.forEach(c=>{for(let i=0;i<n;i++)c[i]*=g})}
- const pts=pickPoints(buf,L,o.pos),vg=o.vol/100,ramp=Math.floor(.25*sr),fi=o.fi*sr,fo=o.fo*sr;
+ const pts=o.pos==='manual'?manPts(file,buf,L):pickPoints(buf,L,o.pos),vg=o.vol/100,ramp=Math.floor(.25*sr),fi=o.fi*sr,fo=o.fo*sr;
  const gp=Math.floor(o.gap*sr);
  for(const p of pts){const s0=p-gp-ramp,e1=p+L+gp+ramp,d0=Math.max(0,s0),d1=Math.min(n,e1);
   for(let i=d0;i<d1;i++){const e=Math.min(1,s0>0?(i-s0)/ramp:1,e1<n?(e1-i)/ramp:1),k=i-p;let v=0;
@@ -326,16 +357,88 @@ async function encode(out,sr){
  for(let i=0,k=0;i<n;i+=1152,k++){const a=enc.encodeBuffer(l.subarray(i,i+1152),r.subarray(i,i+1152));if(a.length)parts.push(new Int8Array(a));if(k%300===0)await tick()}
  const e=enc.flush();if(e.length)parts.push(new Int8Array(e));return new Blob(parts,{type:'audio/mpeg'})}
 
-$('#pv').onclick=async()=>{
- if(src){src.stop();src=null;$('#pv').textContent='Testar vinheta';return}
+const setPv=t=>{$('#pv').textContent=t;$('#mpv').textContent=t==='Testar vinheta'?'Ouvir com a vinheta':t};
+async function preview(f,at){
+ if(src){src.stop();src=null;setPv('Testar vinheta');return}
  $('#pvm').textContent='Preparando…';await tick();
- try{const buf=await dec(songs[0]),m=mix(buf,vin),ab=ac().createBuffer(2,m.out[0].length,m.sr);
+ try{const buf=await dec(f),m=mix(buf,vin,f),ab=ac().createBuffer(2,m.out[0].length,m.sr);
   ab.copyToChannel(m.out[0],0);ab.copyToChannel(m.out[1],1);
   await ctx.resume();src=ctx.createBufferSource();src.buffer=ab;src.connect(ctx.destination);
-  const t=Math.max(0,m.pts[0]/m.sr-6);src.start(0,t,Math.min(20,ab.duration-t));
-  src.onended=()=>{src=null;$('#pv').textContent='Testar vinheta'};
-  $('#pv').textContent='Parar';$('#pvm').textContent='Tocando o trecho da vinheta em “'+songs[0].name+'”'}
- catch(e){$('#pvm').textContent='Não consegui processar essa música.'}};
+  const t=Math.max(0,(at==null?m.pts[0]/m.sr:at)-6);src.start(0,t,Math.min(20,ab.duration-t));
+  src.onended=()=>{src=null;setPv('Testar vinheta')};
+  setPv('Parar');$('#pvm').textContent='Tocando o trecho da vinheta em “'+f.name+'”'}
+ catch(e){$('#pvm').textContent='Não consegui processar essa música.'}}
+$('#pv').onclick=()=>{const sel=o.pos==='manual'&&ed.f;preview(sel?ed.f:songs[0],sel&&ed.act>=0?mks()[ed.act]:null)};
+$('#mpv').onclick=()=>$('#pv').onclick();
+
+/* ===== Posição manual: o cliente marca onde a vinheta entra, música por música ===== */
+const fkey=f=>f.name+'|'+f.size+'|'+f.lastModified,man={},ed={i:-1,f:null,buf:null,dur:0,act:-1,tok:0,sw:0};
+const mks=()=>ed.f?(man[fkey(ed.f)]||(man[fkey(ed.f)]=[])):[];
+const vinL=()=>vin?vin.duration:0,maxT=()=>Math.max(0,ed.dur-vinL());
+const clampT=t=>Math.min(maxT(),Math.max(0,Math.round(t*10)/10));
+const fmt=t=>{const d=Math.round(t*10),m=Math.floor(d/600),s=Math.floor((d%600)/10);return m+':'+String(s).padStart(2,'0')+','+(d%10)};
+const parseT=v=>{v=String(v).trim().replace(',','.');if(!v)return NaN;const p=v.split(':');if(p.length>2)return NaN;const n=p.map(Number);if(n.some(x=>!isFinite(x)||x<0))return NaN;return p.length===2?n[0]*60+n[1]:n[0]};
+function sortKeep(v){const a=mks();a.sort((x,y)=>x-y);ed.act=a.indexOf(v)}
+/* pontos (em amostras) usados na mixagem; música sem marca usa o automático; pontos que se sobrepõem são ignorados */
+function manPts(f,buf,L){const sr=buf.sampleRate,last=Math.max(0,buf.length-L),a=f?(man[fkey(f)]||[]):[];
+ if(!a.length)return pickPoints(buf,L,'auto');
+ const gp=Math.floor(o.gap*sr),out=[];
+ for(const s of [...a].sort((x,y)=>x-y)){const p=Math.min(last,Math.max(0,Math.round(s*sr)));if(!out.length||p>=out[out.length-1]+L+gp)out.push(p)}
+ return out}
+function manFill(){const s=$('#msong');s.innerHTML='';
+ songs.forEach((f,i)=>{const op=document.createElement('option');op.value=i;op.textContent=(i+1)+'. '+f.name;s.appendChild(op)});
+ ed.f=null;ed.buf=null;ed.i=-1;ed.dur=0;ed.act=-1;ed.tok++;manShow()}
+function manShow(){const on=o.pos==='manual';$('#man').classList.toggle('hide',!on);
+ if(!on)return;
+ if(!songs.length){$('#mmsg').textContent='Envie as músicas na etapa 1 para marcar os pontos.';return}
+ if(ed.i<0)edLoad(0);else{render();manCount()}}
+async function edLoad(i){if(!songs[i])return;const tk=++ed.tok;ed.i=i;ed.f=songs[i];ed.buf=null;ed.dur=0;ed.act=-1;$('#msong').value=i;
+ $('#mmsg').textContent='Lendo a música…';draw(null);render();
+ try{const b=await dec(ed.f);if(tk!==ed.tok)return;ed.buf=b;ed.dur=b.duration;draw(b);render();manCount()}
+ catch(e){if(tk===ed.tok)$('#mmsg').textContent='Não consegui ler essa música. Tente outra.'}}
+function draw(b){const cv=$('#wcv'),W=cv.width,H=cv.height,g=cv.getContext('2d');g.clearRect(0,0,W,H);if(!b)return;
+ const d=b.getChannelData(0),n=d.length;g.fillStyle='#8fe3cc';g.globalAlpha=.85;
+ for(let x=0;x<W;x++){const s=Math.floor(x*n/W),e=Math.min(n,Math.floor((x+1)*n/W)),st=Math.max(1,Math.floor((e-s)/48));let mx=0;
+  for(let j=s;j<e;j+=st){const a=Math.abs(d[j]);if(a>mx)mx=a}
+  const h=Math.max(2,Math.min(1,mx*1.6)*H*.92);g.fillRect(x,(H-h)/2,1,h)}g.globalAlpha=1}
+function render(){const wm=$('#wmk'),ls=$('#mlist'),a=mks();wm.innerHTML='';ls.innerHTML='';if(!ed.dur)return;const L=vinL();
+ a.forEach((t,i)=>{
+  const d=document.createElement('div');d.className='mk'+(i===ed.act?' act':'');d.style.left=(t/ed.dur*100)+'%';d.style.width=(L/ed.dur*100)+'%';
+  const nb=document.createElement('b');nb.textContent=i+1;d.appendChild(nb);wm.appendChild(d);
+  d.onclick=e=>e.stopPropagation();
+  d.onpointerdown=e=>{e.preventDefault();e.stopPropagation();ed.act=i;try{d.setPointerCapture(e.pointerId)}catch(_){}
+   const rc=$('#wfx').getBoundingClientRect(),off=e.clientX-d.getBoundingClientRect().left;
+   d.onpointermove=ev=>{const v=clampT((ev.clientX-off-rc.left)/rc.width*ed.dur);a[i]=v;d.style.left=(v/ed.dur*100)+'%'};
+   d.onpointerup=d.onpointercancel=()=>{d.onpointermove=d.onpointerup=d.onpointercancel=null;ed.sw=Date.now();sortKeep(a[i]);render();manCount()}};
+  const r=document.createElement('div');r.className='mli'+(i===ed.act?' act':'');
+  const sp=document.createElement('span');sp.textContent='Ponto '+(i+1);
+  const inp=document.createElement('input');inp.className='tin';inp.type='text';inp.inputMode='decimal';inp.value=fmt(t);inp.setAttribute('aria-label','Tempo do ponto '+(i+1));
+  inp.onchange=()=>{const v=parseT(inp.value);if(isNaN(v)){toast('Tempo inválido. Use o formato 1:05 ou 65.');render();return}const c=clampT(v);a[i]=c;sortKeep(c);render();manCount()};
+  const hear=document.createElement('button');hear.type='button';hear.className='btn';hear.textContent='Ouvir';hear.disabled=!(vin&&songs.length);
+  hear.onclick=()=>{ed.act=i;render();preview(ed.f,a[i])};
+  const del=document.createElement('button');del.type='button';del.className='btn';del.textContent='Remover';
+  del.onclick=()=>{a.splice(i,1);ed.act=-1;render();manCount()};
+  r.append(sp,inp,hear,del);ls.appendChild(r)})}
+function manCount(){const L=vinL(),a=mks(),close=a.some((x,i)=>i&&x-a[i-1]<L+o.gap);let n=0;
+ [...$('#msong').options].forEach((op,i)=>{const k=songs[i]&&(man[fkey(songs[i])]||[]).length>0;if(k)n++;op.textContent=(k?'✓ ':'')+(i+1)+'. '+songs[i].name});
+ if(songs[ed.i])$('#msong').value=ed.i;
+ $('#mmsg').textContent=(close?'Atenção: dois pontos estão mais perto que o tamanho da vinheta; o segundo será ignorado. ':'')+n+' de '+songs.length+' música(s) com ponto marcado. As outras usam o automático.'}
+$('#wfx').onclick=e=>{if(!ed.dur||Date.now()-ed.sw<400)return; /* ignora o clique que o navegador dispara ao soltar uma marca */
+ const rc=e.currentTarget.getBoundingClientRect(),v=clampT((e.clientX-rc.left)/rc.width*ed.dur),a=mks();
+ if(vin&&a.some(x=>Math.abs(x-v)<vin.duration)){toast('Já existe um ponto aqui perto. Mova o outro ou escolha outro trecho.');return}
+ a.push(v);sortKeep(v);render();manCount()};
+$('#madd').onclick=()=>{if(!ed.dur)return;const v=parseT($('#mtime').value);if(isNaN(v)){toast('Digite o tempo no formato 1:05 ou 65.');return}
+ const c=clampT(v),a=mks();if(vin&&a.some(x=>Math.abs(x-c)<vin.duration)){toast('Já existe um ponto aqui perto.');return}
+ a.push(c);sortKeep(c);$('#mtime').value='';render();manCount()};
+$('#mtime').onkeydown=e=>{if(e.key==='Enter')$('#madd').click()};
+$('#mauto').onclick=()=>{if(!ed.buf||!vin){toast('Envie a vinheta e espere a música abrir.');return}
+ const a=[...new Set(pickPoints(ed.buf,vin.length,'auto').map(p=>clampT(p/ed.buf.sampleRate)))].sort((x,y)=>x-y);man[fkey(ed.f)]=a;ed.act=-1;render();manCount()};
+$('#mclr').onclick=()=>{if(!ed.f)return;man[fkey(ed.f)]=[];ed.act=-1;render();manCount()};
+$('#mcopy').onclick=()=>{const a=mks();if(!a.length){toast('Marque pelo menos um ponto nesta música primeiro.');return}
+ songs.forEach(f=>{man[fkey(f)]=[...a]});manCount();toast('Pontos copiados para '+songs.length+' música(s). Em música mais curta o ponto é ajustado para caber.')};
+$('#msong').onchange=e=>edLoad(+e.target.value);
+$('#mprev').onclick=()=>edLoad(ed.i-1);$('#mnext').onclick=()=>edLoad(ed.i+1);
+document.querySelectorAll('#pos button').forEach(b=>b.addEventListener('click',manShow));
 
 $('#go').onclick=async()=>{
  const list=paid?songs:songs.slice(0,FREE),zip=new JSZip(),wav=$('#wav').checked;zipBlob=null;
@@ -344,7 +447,7 @@ $('#go').onclick=async()=>{
  $('#prc').scrollIntoView({behavior:'smooth',block:'center'});let done=0,fail=0;
  for(let i=0;i<list.length;i++){if(stop)break;
   $('#pn').textContent='Música '+(i+1)+' de '+list.length;rows[i].lastChild.textContent='Processando…';await tick();
-  try{const buf=await dec(list[i]),m=mix(buf,vin),blob=paid?await encode(m.out,m.sr):null;
+  try{const buf=await dec(list[i]),m=mix(buf,vin,list[i]),blob=paid?await encode(m.out,m.sr):null;
    if(paid){const base=list[i].name.replace(/\.[^.]+$/,''),ext=wav?'.wav':'.mp3';let nm=base,q=1;while(zip.file(nm+ext))nm=base+' ('+(++q)+')';zip.file(nm+ext,blob)}rows[i].className='d';rows[i].lastChild.textContent='Concluída';done++}
   catch(e){rows[i].lastChild.textContent='Erro';fail++}
   $('#pb').style.width=Math.round((i+1)/list.length*100)+'%';rows[i].scrollIntoView({block:'nearest'})}
@@ -364,17 +467,25 @@ $('#dl').onclick=async()=>{if(!paid){$('#planos').scrollIntoView({behavior:'smoo
 $('#cx').onclick=()=>{stop=true;$('#cx').textContent='Cancelando…'};
 /* ===== Pagamento Pix ===== */
 let pay={plan:null,order:null,timer:null,until:0};
+let tsId=null,tsReady=null;
+function tsLoad(){if(!CONFIG.turnstile)return Promise.resolve();if(tsReady)return tsReady;
+ tsReady=new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.onload=ok;s.onerror=no;document.head.appendChild(s)}).then(()=>{tsId=window.turnstile.render('#pts',{sitekey:CONFIG.turnstile,theme:'dark'})}).catch(()=>{tsReady=null});return tsReady}
+function tsToken(){return(CONFIG.turnstile&&window.turnstile&&tsId!==null)?window.turnstile.getResponse(tsId):''}
+function tsReset(){if(CONFIG.turnstile&&window.turnstile&&tsId!==null)window.turnstile.reset(tsId)}
 const pm=$('#pmod'),pEl=id=>$('#'+id);
 function pClose(){clearInterval(pay.timer);pay.timer=null;pm.classList.add('hide');document.body.style.overflow=''}
 function pStep(n){['p1','p2','p3'].forEach((id,i)=>pEl(id).classList.toggle('hide',i+1!==n))}
 document.querySelectorAll('[data-plan]').forEach(a=>a.onclick=e=>{e.preventDefault();pay.plan=a.dataset.id;
- pEl('pt').textContent='Plano '+a.dataset.plan+' · '+PRICES[pay.plan];pEl('pe').textContent='';pStep(1);pm.classList.remove('hide');document.body.style.overflow='hidden';pEl('pmail').focus()});
+ pEl('pt').textContent='Plano '+a.dataset.plan+' · '+PRICES[pay.plan];pEl('pe').textContent='';pStep(1);pm.classList.remove('hide');document.body.style.overflow='hidden';pEl('pname').focus();tsLoad()});
 $('#px').onclick=pClose;pm.addEventListener('click',e=>{if(e.target===pm)pClose()});
 addEventListener('keydown',e=>{if(e.key==='Escape'&&!pm.classList.contains('hide'))pClose()});
 $('#pgo').onclick=async()=>{const email=pEl('pmail').value.trim(),err=pEl('pe');err.textContent='';
+ const name=pEl('pname').value.trim().replace(/\s+/g,' '),phone=pEl('pphone').value.trim();
+ if(name.length<2){err.textContent='Digite seu nome.';return}
  if(!/^\S+@\S+\.\S{2,}$/.test(email)){err.textContent='Digite um e-mail válido.';return}
+ const ts=tsToken();if(CONFIG.turnstile&&!ts){err.textContent='Confirme que você não é um robô.';return}
  const b=$('#pgo');b.disabled=true;b.textContent='Gerando Pix…';
- try{const r=await fetch(CONFIG.api+'/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:pay.plan,email})});
+ try{const r=await fetch(CONFIG.api+'/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:pay.plan,email,name,phone,ts})});
   const j=await r.json();if(!r.ok)throw new Error(j.error||'Erro ao gerar o Pix.');
   pay.order=j.orderId;pay.until=Date.now()+j.expiresInMin*60000;
   pEl('pqr').src=j.qrImage;pEl('pcode').value=j.qr;pEl('pamt').textContent=PRICES[pay.plan];pStep(2);
@@ -383,7 +494,7 @@ $('#pgo').onclick=async()=>{const email=pEl('pmail').value.trim(),err=pEl('pe');
  catch(x){const net=x instanceof TypeError;
   if(net)console.error('Falha de rede ao chamar '+CONFIG.api+'/api/checkout. Confira se o site foi publicado pelo Git/CLI (arrastar a pasta nao publica as funcoes) e abra /health no seu site.',x);
   err.textContent=net?'Não consegui falar com o servidor de pagamentos. Tente de novo em instantes.':(x.message||'Erro ao gerar o Pix.')}
- b.disabled=false;b.textContent='Gerar Pix'};
+ tsReset();b.disabled=false;b.textContent='Gerar Pix'};
 $('#pcp').onclick=async()=>{const c=pEl('pcode');try{await navigator.clipboard.writeText(c.value)}catch(_){c.select();document.execCommand('copy')}toast('Código Pix copiado. Cole no app do seu banco.')};
 function pPoll(){clearInterval(pay.timer);let busy=false;
  pay.timer=setInterval(async()=>{if(busy)return;busy=true;
