@@ -27,6 +27,8 @@ export function cfg() {
     pepper: g('LICENSE_PEPPER'),
     adminToken: g('ADMIN_TOKEN'),
     maxDevices: Number(g('MAX_DEVICES')) || 2,
+    // Em que unidade a AtenasPay espera o campo "amount": 'reais' (29.90) ou 'centavos' (2990).
+    amountUnit: (g('AMOUNT_UNIT') || 'reais').toLowerCase() === 'centavos' ? 'centavos' : 'reais',
   };
   const missing = (['apiKey', 'webhookSecret', 'pepper', 'adminToken'] as const).filter(k => !c[k]);
   if (missing.length || c.pepper.length < 32 || c.adminToken.length < 32) {
@@ -80,6 +82,22 @@ export const safeEq = (a: unknown, b: unknown) => {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 };
 export const hmacHex = (secret: string, msg: string) => crypto.createHmac('sha256', secret).update(msg).digest('hex');
+
+// Valor do Pix escrito dentro do "copia e cola" (EMV, campo 54), ou null se não houver.
+// Serve de trava: nunca mostramos ao cliente um Pix com valor diferente do plano.
+export function emvAmount(emv: string): number | null {
+  try {
+    let i = 0;
+    while (i + 4 <= emv.length) {
+      const id = emv.slice(i, i + 2), len = Number(emv.slice(i + 2, i + 4));
+      if (!Number.isInteger(len)) return null;
+      const val = emv.slice(i + 4, i + 4 + len);
+      if (id === '54') { const n = Number(val); return Number.isFinite(n) ? n : null; }
+      i += 4 + len;
+    }
+  } catch { /* ignora */ }
+  return null;
+}
 
 // ---------- AtenasPay ----------
 export async function atenasCreate(c: { base: string; apiKey: string }, amountCents: number, externalId: string) {
