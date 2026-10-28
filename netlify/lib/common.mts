@@ -42,11 +42,14 @@ export function cfg() {
 }
 
 // Preços e prazos vivem SÓ aqui. O navegador nunca decide o valor.
-export const PLANS: Record<string, { name: string; price: number; days: number | null }> = {
-  mensal:     { name: 'MarcaSom Mensal',     price: 29.90,  days: 30 },
-  trimestral: { name: 'MarcaSom Trimestral', price: 59.90,  days: 90 },
-  vitalicio:  { name: 'MarcaSom Vitalício',  price: 129.90, days: null },
+// weekly = limite de músicas por semana (null = sem limite). Mude o número aqui para mudar o limite.
+export const PLANS: Record<string, { name: string; price: number; days: number | null; weekly: number | null }> = {
+  mensal:     { name: 'MarcaSom Mensal',     price: 29.90,  days: 30,   weekly: 100 },
+  trimestral: { name: 'MarcaSom Trimestral', price: 59.90,  days: 90,   weekly: 70 },
+  vitalicio:  { name: 'MarcaSom Vitalício',  price: 129.90, days: null, weekly: null },
 };
+// chaves de administrador (plano 'admin') não estão em PLANS: sem limite semanal
+export const weeklyOf = (plan: string): number | null => PLANS[plan]?.weekly ?? null;
 export const cents = (p: number) => Math.round(p * 100); // AtenasPay recebe centavos (5000 = R$ 50,00)
 export const now = () => Date.now();
 
@@ -81,6 +84,46 @@ export const ordersStore = () => getStore({ name: 'orders', consistency: 'strong
 export const licensesStore = () => getStore({ name: 'licenses', consistency: 'strong' });
 export const pendingStore = () => getStore({ name: 'pending', consistency: 'strong' });
 export const devicesStore = () => getStore({ name: 'devices', consistency: 'strong' });
+export const usageStore = () => getStore({ name: 'usage', consistency: 'strong' });
+
+// Semana de segunda 00:00 a domingo 23:59, horário de Brasília (UTC-3, sem horário de verão).
+const BRT_MS = 3 * 3600 * 1000;
+export function weekInfo(t = Date.now()) {
+  const d = new Date(t - BRT_MS);                       // "relógio de parede" de Brasília
+  const dow = (d.getUTCDay() + 6) % 7;                  // 0 = segunda
+  const mondayLocal = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - dow * 86400000;
+  const start = mondayLocal + BRT_MS;
+  return { id: new Date(mondayLocal).toISOString().slice(0, 10), start, resetsAt: start + 7 * 86400000 };
+}
+
+// Soma (delta > 0, respeitando o limite) ou devolve (delta < 0) músicas no contador da semana.
+// Usa etag para que dois pedidos ao mesmo tempo nunca ultrapassem o limite.
+export async function usageChange(h: string, week: string, delta: number, limit: number | null): Promise<{ applied: number; used: number }> {
+  const S = usageStore(), k = `${h}/${week}`;
+  for (let i = 0; i < 8; i++) {
+    const cur = await S.getWithMetadata(k, { type: 'json' });
+    const used = Math.max(0, Number((cur?.data as { n?: number } | undefined)?.n) || 0);
+    let applied = delta;
+    if (delta > 0 && limit != null) applied = Math.min(delta, Math.max(0, limit - used));
+    if (delta < 0) applied = -Math.min(-delta, used);
+    if (applied === 0) return { applied: 0, used };
+    const n = used + applied;
+    const w = cur ? await S.setJSON(k, { n }, { onlyIfMatch: cur.etag }) : await S.setJSON(k, { n }, { onlyIfNew: true });
+    if (w.modified) return { applied, used: n };
+  }
+  throw new Error('usage-busy');
+}
+
+// Chave válida, não revogada, não vencida e já registrada neste aparelho (a entrada do aparelho é feita em /api/validate).
+export async function loadLicense(pepper: string, keyIn: unknown, deviceIn: unknown): Promise<{ h: string; L: License } | null> {
+  const key = String(keyIn || '').trim().toUpperCase(), device = String(deviceIn || '');
+  if (!/^MS-([A-Z2-9]{5}-){3}[A-Z2-9]{5}$/.test(key) || !/^[a-f0-9]{32}$/.test(device)) return null;
+  const h = crypto.createHmac('sha256', pepper).update(key).digest('hex');
+  const L = await licensesStore().get(h, { type: 'json' }) as License | null;
+  if (!L || L.revoked || (L.expires_at && L.expires_at < Date.now())) return null;
+  if ((await devicesStore().get(`${h}/${device}`)) === null) return null;
+  return { h, L };
+}
 
 // ---------- Criptografia ----------
 export const hashKey = (pepper: string, k: string) => crypto.createHmac('sha256', pepper).update(k).digest('hex');
