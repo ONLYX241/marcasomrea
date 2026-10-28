@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions';
-import { badConfig, cfg, devicesStore, hashKey, json, licensesStore, now, readJson, type License } from '../lib/common.mts';
+import { badConfig, cfg, devicesStore, hashKey, json, licensesStore, now, readJson, usageStore, weekInfo, weeklyOf, type License } from '../lib/common.mts';
 
 // 4) valida a chave + limite de aparelhos
 export default async (req: Request) => {
@@ -26,7 +26,15 @@ export default async (req: Request) => {
     const depois = await D.list({ prefix: h + '/' });
     if (depois.blobs.length > maxDev) { await D.delete(dk); return json({ valid: false, reason: 'device-limit' }); }
   }
-  return json({ valid: true, plan: L.plan, expiresAt: L.expires_at });
+  // quanto do limite semanal já foi usado (null = plano sem limite)
+  const lim = weeklyOf(L.plan);
+  let weekly: { limit: number; used: number; resetsAt: number } | null = null;
+  if (lim != null) {
+    const wk = weekInfo();
+    const u = await usageStore().get(`${h}/${wk.id}`, { type: 'json' }) as { n?: number } | null;
+    weekly = { limit: lim, used: Math.min(lim, Math.max(0, Number(u?.n) || 0)), resetsAt: wk.resetsAt };
+  }
+  return json({ valid: true, plan: L.plan, expiresAt: L.expires_at, weekly });
 };
 
 export const config: Config = {

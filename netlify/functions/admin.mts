@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions';
-import { badConfig, cfg, cleanName, cleanPhone, code, devicesStore, hashKey, json, licensesStore, newLicenseKey, newOrderId, now, ordersStore, PLANS, readJson, safeEq, type License, type Order } from '../lib/common.mts';
+import { badConfig, cfg, cleanName, cleanPhone, code, devicesStore, hashKey, json, licensesStore, newLicenseKey, newOrderId, now, ordersStore, PLANS, readJson, safeEq, usageStore, weekInfo, weeklyOf, type License, type Order } from '../lib/common.mts';
 
 // Admin: autenticação por "Authorization: Bearer <ADMIN_TOKEN>"
 export default async (req: Request) => {
@@ -35,23 +35,27 @@ export default async (req: Request) => {
     const L = licensesStore(), D = devicesStore();
     const { blobs } = await L.list();
     const keys = blobs.slice(0, 1000).map(b => b.key);
-    const rows: { lic: License; devices: number }[] = [];
+    const rows: { lic: License; devices: number; week: { used: number; limit: number } | null }[] = [];
+    const US = usageStore(), wk = weekInfo();
     for (let i = 0; i < keys.length; i += 20) {
       const part = await Promise.all(keys.slice(i, i + 20).map(async (h) => {
         const lic = await L.get(h, { type: 'json' }) as License | null;
         if (!lic) return null;
         const dev = await D.list({ prefix: h + '/' });
-        return { lic, devices: dev.blobs.length };
+        const lim = weeklyOf(lic.plan);
+        let week: { used: number; limit: number } | null = null;
+        if (lim != null) { const u = await US.get(`${h}/${wk.id}`, { type: 'json' }) as { n?: number } | null; week = { used: Math.max(0, Number(u?.n) || 0), limit: lim }; }
+        return { lic, devices: dev.blobs.length, week };
       }));
       for (const r of part) if (r) rows.push(r);
     }
     rows.sort((a, b) => a.lic.created_at - b.lic.created_at); // a compra mais nova por último: o nome/WhatsApp dela prevalece
     const by = new Map<string, { email: string; name: string; phone: string; purchases: unknown[] }>();
-    for (const { lic, devices } of rows) {
+    for (const { lic, devices, week } of rows) {
       const cu = by.get(lic.email) || { email: lic.email, name: '', phone: '', purchases: [] };
       if (lic.name) cu.name = lic.name;
       if (lic.phone) cu.phone = lic.phone;
-      cu.purchases.push({ order_id: lic.order_id, plan: lic.plan, created_at: lic.created_at, expires_at: lic.expires_at, revoked: lic.revoked, devices, max: lic.max_devices || c.maxDevices, hint: lic.hint || '' });
+      cu.purchases.push({ order_id: lic.order_id, plan: lic.plan, created_at: lic.created_at, expires_at: lic.expires_at, revoked: lic.revoked, devices, max: lic.max_devices || c.maxDevices, week, hint: lic.hint || '' });
       by.set(lic.email, cu);
     }
     const out = [...by.values()].sort((a: any, b: any) => b.purchases[b.purchases.length - 1].created_at - a.purchases[a.purchases.length - 1].created_at);
@@ -82,6 +86,14 @@ export default async (req: Request) => {
     for (const { hash, lic } of list) await licensesStore().setJSON(hash, { ...lic, revoked: true });
     return json({ revoked: list.length });
   }
+  // devolve o limite da semana (suporte: cliente que perdeu músicas por queda de internet, por exemplo)
+  if (req.method === 'POST' && path === '/api/admin/reset-week') {
+    const email = String((await readJson(req)).email || '').toLowerCase();
+    const wk = weekInfo();
+    let n = 0;
+    for (const { hash } of await doEmail(email)) { await usageStore().delete(`${hash}/${wk.id}`); n++; }
+    return json({ reset: n });
+  }
   if (req.method === 'POST' && path === '/api/admin/reset-devices') {
     const email = String((await readJson(req)).email || '').toLowerCase();
     const D = devicesStore();
@@ -96,7 +108,7 @@ export default async (req: Request) => {
 };
 
 export const config: Config = {
-  path: ['/api/admin/orders', '/api/admin/customers', '/api/admin/grant', '/api/admin/revoke', '/api/admin/reset-devices'],
+  path: ['/api/admin/orders', '/api/admin/customers', '/api/admin/grant', '/api/admin/revoke', '/api/admin/reset-week', '/api/admin/reset-devices'],
   method: ['GET', 'POST'],
   rateLimit: { action: 'rate_limit', windowLimit: 20, windowSize: 60, aggregateBy: ['ip', 'domain'] },
 };
