@@ -109,15 +109,16 @@ function draw(){
   l.append(el('h2','',c.name||'(sem nome — compra antiga)'),el('div','em',c.email));
   const w=waLink(c.phone);
   if(c.phone){const p=el('div','em',c.phone+' ');if(w){const a=el('a','','Chamar no WhatsApp');a.href=w;a.target='_blank';a.rel='noopener noreferrer';p.appendChild(a)}l.appendChild(p)}
-  const ac=el('div','ac'),b1=el('button','btn','Zerar aparelhos'),b2=el('button','btn dng','Revogar chaves');
-  b1.type=b2.type='button';
+  const ac=el('div','ac'),b0=el('button','btn','Zerar limite da semana'),b1=el('button','btn','Zerar aparelhos'),b2=el('button','btn dng','Revogar chaves');
+  b0.type=b1.type=b2.type='button';
+  b0.onclick=()=>act1('reset-week',c,'Devolver as músicas desta semana de '+c.email+'? O contador volta para zero.');
   b1.onclick=()=>act1('reset-devices',c,'Zerar os aparelhos de '+c.email+'? Ele poderá entrar em novos aparelhos.');
   b2.onclick=()=>act1('revoke',c,'Revogar TODAS as chaves de '+c.email+'? Use em caso de reembolso. Não dá para desfazer por aqui.');
-  ac.append(b1,b2);top.append(l,ac);card.appendChild(top);
+  ac.append(b0,b1,b2);top.append(l,ac);card.appendChild(top);
   c.purchases.slice().reverse().forEach(p=>{
    const [txt,cls]=status(p),row=el('div','pu');
    const a=el('div');a.append(el('b','',PLAN[p.plan]||p.plan),el('small','','Comprou em '+dt(p.created_at)));
-   const b=el('div');b.append(el('span','tg '+cls,txt),el('small','',p.expires_at?'Vence em '+dd(p.expires_at):'Sem vencimento'));
+   const b=el('div');b.append(el('span','tg '+cls,txt),el('small','',p.expires_at?'Vence em '+dd(p.expires_at):'Sem vencimento'),el('small','',p.week?'Esta semana: '+p.week.used+' de '+p.week.limit+' músicas':'Sem limite semanal'));
    const cc=el('div');cc.append(el('b','',p.devices+' de '+(p.max||MAXDEV)),el('small','','aparelhos em uso'));
    const d=el('div');d.append(el('b','',p.hint?'…'+p.hint:'—'),el('small','','final da chave'));
    row.append(a,b,cc,d);card.appendChild(row)});
@@ -126,7 +127,7 @@ function draw(){
 async function act1(kind,c,msg){
  if(!confirm(msg))return;
  try{const r=await api('/api/admin/'+kind,'POST',{email:c.email});
-  toast(kind==='revoke'?r.revoked+' chave(s) revogada(s).':r.cleared+' aparelho(s) liberado(s).');await load()}
+  toast(kind==='revoke'?r.revoked+' chave(s) revogada(s).':kind==='reset-week'?'Limite da semana zerado.':r.cleared+' aparelho(s) liberado(s).');await load()}
  catch(e){toast(e.message||'Não consegui concluir.')}}
 
 async function showOrders(){
