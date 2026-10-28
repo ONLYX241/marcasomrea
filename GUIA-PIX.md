@@ -49,6 +49,14 @@ Abra `https://SEU-SITE.netlify.app/admin` e entre com o `ADMIN_TOKEN` (fica só 
 - Botões **Zerar aparelhos** e **Revogar chaves** (reembolso) e **Exportar CSV** (abre no Excel).
 - O nome e o WhatsApp vêm do formulário de compra (nome obrigatório, WhatsApp opcional). Compras feitas antes desta versão aparecem como "sem nome".
 
+## Limite semanal de músicas
+- **Mensal: 100 músicas por semana. Trimestral: 70 por semana. Vitalício e administrador: sem limite semanal.**
+- A semana vai de **segunda 00:00 a domingo 23:59, horário de Brasília**. Na segunda o contador volta a zero.
+- O contador fica no **servidor**. Antes de processar, o site reserva as músicas; se o cliente cancelar ou der erro, as que não foram processadas voltam para o limite. Se faltarem menos músicas do que as escolhidas, o site processa só as primeiras que couberem e avisa. Com o limite esgotado, mostra quando renova.
+- No `/admin`, cada compra mostra "Esta semana: X de Y músicas". O botão **Zerar limite da semana** devolve tudo ao cliente (use se ele perdeu músicas por queda de internet no meio do processamento).
+- Para mudar os números: edite `weekly` em `PLANS` no arquivo `netlify/lib/common.mts` (é o que vale de verdade) e `WEEKLY` perto do topo do script em `site/index.html` (é só o texto dos cartões de plano).
+- Vale também para quem já assinou antes desta atualização.
+
 ## Acesso de administrador (testar e usar sem pagar)
 No `/admin`, no quadro **Liberar acesso sem pagamento**: preencha nome e e-mail, deixe o plano em **Administrador** e clique em **Gerar chave**. A chave aparece uma vez (copie na hora). No site, clique em **"Já tenho uma chave"** e cole. Ela não vence, vale em até 20 aparelhos e libera o download completo. Cada administrador gera a sua. Para revogar, use "Revogar chaves" no cliente. O mesmo quadro serve para vendas feitas por fora do site (escolha Mensal, Trimestral ou Vitalício).
 
@@ -56,7 +64,7 @@ No `/admin`, no quadro **Liberar acesso sem pagamento**: preencha nome e e-mail,
 O cliente escolhe o volume da vinheta de 0% a 200% (slider ou número). A música **não abaixa** em nenhum momento: a vinheta é somada por cima. Só se a soma passar do máximo digital é que o pico é suavizado, sem baixar o resto da música. "Normalizar volume das músicas" é outra opção, que muda o volume das faixas; deixe desligada para manter o original.
 
 ## Posição manual da vinheta (para o cliente)
-Em "Posição da vinheta" existe a opção **Manual (você escolhe)**. O cliente escolhe a música, clica na onda para marcar onde a vinheta entra (quantos pontos quiser), arrasta para ajustar ou digita o tempo (ex.: `1:05`), ouve com "Ouvir com a vinheta" e pode copiar os pontos para todas as músicas. Música sem ponto marcado usa o modo automático. Tudo roda no navegador do cliente.
+Em "Posição da vinheta" existe a opção **Manual (você escolhe)**. O cliente escolhe a música, clica na onda para marcar onde a vinheta entra (no máximo 2 pontos por música), arrasta para ajustar ou digita o tempo (ex.: `1:05`), ouve com "Ouvir com a vinheta" e pode copiar os pontos para todas as músicas. Música sem ponto marcado usa o modo automático. Tudo roda no navegador do cliente.
 
 ## Administração (API)
 Use o `ADMIN_TOKEN` no header `Authorization: Bearer SEU_TOKEN`:
