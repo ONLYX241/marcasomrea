@@ -183,8 +183,8 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 
 <div class="feat rv">
 <div class="card"><h3>Vinheta automática</h3><p>Insere nos pontos mais silenciosos da música, onde o cantor não está cantando.</p></div>
-<div class="card"><h3>3 pontos estratégicos</h3><p>Distribui a vinheta entre os minutos da faixa, longe do início e do fim.</p></div>
-<div class="card"><h3>Posição manual</h3><p>Quer escolher o ponto exato? Clique na onda da música e marque onde a vinheta entra, quantas vezes quiser.</p></div>
+<div class="card"><h3>2 pontos estratégicos</h3><p>Coloca a vinheta em dois momentos da faixa, nos trechos mais calmos, longe do início e do fim.</p></div>
+<div class="card"><h3>Posição manual</h3><p>Quer escolher o ponto exato? Clique na onda da música e marque onde as 2 vinhetas entram.</p></div>
 <div class="card"><h3>Processamento em lote</h3><p>Envie o repertório inteiro de uma vez e baixe tudo em um único ZIP.</p></div>
 <div class="card"><h3>Saída leve em MP3</h3><p>Arquivos bem menores, prontos pro pendrive. Ou WAV sem perda, se preferir.</p></div>
 <div class="card"><h3>100% no navegador</h3><p>Suas músicas não sobem pra servidor nenhum. Privacidade total.</p></div>
@@ -207,12 +207,12 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 
 <div class="card step"><small>Etapa 3</small><h3>Configurações da vinheta</h3>
 <div class="grp"><span>Posição da vinheta</span><div class="seg" id="pos">
-<button type="button" data-v="auto" aria-pressed="true">Automático (3 pontos)</button><button type="button" data-v="start" aria-pressed="false">Início da música</button><button type="button" data-v="end" aria-pressed="false">Final da música</button><button type="button" data-v="both" aria-pressed="false">Início + final</button><button type="button" data-v="manual" aria-pressed="false">Manual (você escolhe)</button></div>
+<button type="button" data-v="auto" aria-pressed="true">Automático (2 pontos)</button><button type="button" data-v="start" aria-pressed="false">Início da música</button><button type="button" data-v="end" aria-pressed="false">Final da música</button><button type="button" data-v="both" aria-pressed="false">Início + final</button><button type="button" data-v="manual" aria-pressed="false">Manual (você escolhe)</button></div>
 <div class="man hide" id="man">
 <label for="msong" style="font-weight:600;font-size:14px">Música</label><select id="msong"></select>
 <div class="mrow"><button class="btn" id="mprev" type="button">◀ Anterior</button><button class="btn" id="mnext" type="button">Próxima ▶</button></div>
 <div class="wfx" id="wfx" role="application" aria-label="Forma de onda da música. Clique para marcar onde a vinheta entra."><canvas id="wcv" width="1000" height="120"></canvas><div id="wmk"></div></div>
-<small style="display:block;margin-top:6px;color:var(--mu)">Clique na onda para marcar um ponto. Arraste a marca para ajustar. Trechos baixos na onda são os mais calmos. A faixa clara mostra o tamanho da vinheta.</small>
+<small style="display:block;margin-top:6px;color:var(--mu)">Clique na onda para marcar um ponto (no máximo 2 por música). Arraste a marca para ajustar. Trechos baixos na onda são os mais calmos. A faixa clara mostra o tamanho da vinheta.</small>
 <div id="mlist"></div>
 <div class="mrow"><input class="tin" id="mtime" inputmode="decimal" placeholder="ex.: 1:05" aria-label="Tempo do novo ponto" style="width:112px"><button class="btn" id="madd" type="button">Adicionar ponto</button><button class="btn" id="mauto" type="button">Sugerir automático</button><button class="btn" id="mclr" type="button">Limpar desta música</button></div>
 <div class="mrow"><button class="btn" id="mpv" type="button" disabled>Ouvir com a vinheta</button><button class="btn" id="mcopy" type="button">Copiar estes pontos para todas</button></div>
@@ -230,7 +230,7 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 
 <div class="card free" id="fr"><b>Modo teste:</b> processa até 3 músicas e o download fica bloqueado. <a href="#planos" style="color:var(--b)">Assine</a> para liberar o repertório inteiro e baixar o ZIP. <a href="#" id="lic2" style="color:var(--b)">Já tenho uma chave</a>.</div>
 
-<div id="act"><button class="btn pri" id="go" type="button" disabled>Aplicar vinheta em todas</button><div class="msg" id="gom">Envie as músicas e a vinheta para começar</div></div>
+<div id="act"><button class="btn pri" id="go" type="button" disabled>Aplicar vinheta em todas</button><div class="msg" id="gom">Envie as músicas e a vinheta para começar</div><div class="msg" id="wk" role="status"></div></div>
 
 <div class="card step hide" id="prc"><h3 id="ph">Processando repertório…</h3><small id="pn"></small><div class="bar"><i id="pb"></i></div><div class="list" id="pl"></div><div style="margin-top:14px;text-align:center"><button class="btn" id="cx" type="button">Cancelar</button></div></div>
 
@@ -244,11 +244,11 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
 <div class="cmp rv"><div class="card a"><b>36 min</b><span>pra colocar vinheta em 18 músicas à mão no editor</span></div><div class="card z"><b>~1 min</b><span>no MarcaSom, com o repertório inteiro em lote</span></div></div>
 <div class="plans rv">
 <div class="card plan"><h3>Mensal</h3><div class="old">&nbsp;</div><div class="price">R$ 29,90<small> /mês</small></div><div class="hint">Menos de R$ 1,00 por dia</div>
-<ul><li>Músicas ilimitadas</li><li>Vinheta em até 3 pontos automáticos</li><li>Processamento em lote (ZIP)</li><li>Saída em MP3 ou WAV</li></ul><a class="btn" href="#" data-plan="Mensal" data-id="mensal">Assinar mensal</a></div>
+<ul><li data-wk="mensal">Até 100 músicas por semana</li><li>2 vinhetas por música, em pontos automáticos</li><li>Processamento em lote (ZIP)</li><li>Saída em MP3 ou WAV</li></ul><a class="btn" href="#" data-plan="Mensal" data-id="mensal">Assinar mensal</a></div>
 <div class="card plan hot"><span class="tag">Mais popular · economize 33%</span><h3>Trimestral</h3><div class="old">de R$ 89,70</div><div class="price">R$ 59,90<small> /3 meses</small></div><div class="hint">R$ 19,97 por mês</div>
-<ul><li>Tudo do Mensal</li><li>Posicionamento inteligente dos pontos</li><li>Normalização de volume</li><li>Prioridade no processamento</li><li>Suporte prioritário</li></ul><a class="btn pri" href="#" data-plan="Trimestral" data-id="trimestral">Quero o trimestral</a></div>
+<ul><li data-wk="trimestral">Até 70 músicas por semana</li><li>Todos os recursos do Mensal</li><li>Posicionamento inteligente dos pontos</li><li>Normalização de volume</li><li>Prioridade no processamento</li><li>Suporte prioritário</li></ul><a class="btn pri" href="#" data-plan="Trimestral" data-id="trimestral">Quero o trimestral</a></div>
 <div class="card plan"><span class="tag">Melhor custo no longo prazo</span><h3>Vitalício</h3><div class="old">de R$ 299,90</div><div class="price">R$ 129,90<small> pagamento único</small></div><div class="hint">Se paga em menos de 5 meses</div>
-<ul><li>Tudo do Trimestral</li><li>Sem renovação, paga uma vez</li><li>Atualizações futuras incluídas</li><li>Novos recursos em primeira mão</li></ul><a class="btn" href="#" data-plan="Vitalício" data-id="vitalicio">Garantir vitalício</a></div>
+<ul><li>Sem limite semanal de músicas</li><li>Todos os recursos do Trimestral</li><li>Sem renovação, paga uma vez</li><li>Atualizações futuras incluídas</li><li>Novos recursos em primeira mão</li></ul><a class="btn" href="#" data-plan="Vitalício" data-id="vitalicio">Garantir vitalício</a></div>
 </div>
 <p class="guar">Garantia de 7 dias: se não gostar, devolvemos o valor. Preços de lançamento.<br>Já é assinante? <a href="#" id="lic">Inserir minha chave de acesso</a></p><div class="licbox hide" id="licbox"><input id="lk" placeholder="Cole sua chave de acesso" autocomplete="off"><button class="btn pri" id="lkb" type="button">Ativar</button><div class="msg" id="lkm" style="width:100%"></div></div>
 </div></section>
@@ -284,13 +284,15 @@ section>.w>h2{font-size:clamp(30px,5.5vw,56px)}
    Sua API cria a chave quando o gateway avisa (webhook) que o pagamento foi aprovado.
  testKeys: chaves para testar sem backend. Deixe vazio em produção. */
 const CONFIG={freeLimit:3,api:'',turnstile:''}; /* turnstile: cole aqui a SITE KEY do Cloudflare Turnstile (opcional, anti-robô) */ /* '' = mesmo endereço do site (as funções Netlify respondem em /api/...) */
+const WEEKLY={mensal:100,trimestral:70}; /* só exibição; quem aplica o limite é o servidor (PLANS em netlify/lib/common.mts) */
+document.querySelectorAll('[data-wk]').forEach(e=>{e.textContent='Até '+WEEKLY[e.dataset.wk]+' músicas por semana'});
 const PRICES={mensal:'R$ 29,90',trimestral:'R$ 59,90',vitalicio:'R$ 129,90'}; /* só exibição; o valor cobrado é o do servidor */
 const devId=()=>{try{let d=localStorage.getItem('ms_dev');if(!/^[a-f0-9]{32}$/.test(d||'')){d=[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,'0')).join('');localStorage.setItem('ms_dev',d)}return d}catch(e){return '0'.repeat(32)}};
 async function checkKey(k){k=(k||'').trim().toUpperCase();if(!k)return null;
  const r=await fetch(CONFIG.api+'/api/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:k,device:devId()})});
- const j=await r.json();if(j&&j.valid)return j;if(j&&j.reason==='device-limit')throw new Error('device-limit');return null}
+ const j=await r.json();if(j&&j.valid){W=j.weekly||null;return j}if(j&&j.reason==='device-limit')throw new Error('device-limit');return null}
 const $=s=>document.querySelector(s),FREE=CONFIG.freeLimit,tick=()=>new Promise(r=>setTimeout(r));
-let ctx,songs=[],vin=null,o={pos:'auto',vol:100,fi:0,fo:0,gap:0},zipBlob=null,src=null,stop=false,paid=false;
+let ctx,songs=[],vin=null,o={pos:'auto',vol:100,fi:0,fo:0,gap:0},zipBlob=null,src=null,stop=false,paid=false,KEY='',W=null;
 const ac=()=>ctx||(ctx=new(window.AudioContext||window.webkitAudioContext)());
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hide'),3500)};
 const dec=async f=>ac().decodeAudioData(await f.arrayBuffer());
@@ -308,7 +310,15 @@ zone($('#d2'),$('#b2'),$('#f2'),async fs=>{if(!fs[0])return;$('#o2').textContent
 
 function upd(){const ok=songs.length&&vin;$('#go').disabled=!ok;$('#pv').disabled=!ok;$('#mpv').disabled=!ok;if(ed.dur){render();manCount()}
  $('#gom').textContent=ok?songs.length+' música(s) prontas para processar':'Envie as músicas e a vinheta para começar';
- $('#fr').classList.toggle('hide',paid)}
+ $('#fr').classList.toggle('hide',paid);showWeekly()}
+function showWeekly(){const e=$('#wk');if(!paid||!W){e.textContent='';return}
+ const left=Math.max(0,W.limit-W.used),reset='O limite renova toda segunda-feira às 00:00 (horário de Brasília).';
+ let t=left?'Esta semana: '+W.used+' de '+W.limit+' músicas usadas (restam '+left+'). '+reset:'Você já usou as '+W.limit+' músicas desta semana. '+reset;
+ if(left&&songs.length>left)t+=' Você escolheu '+songs.length+': só as '+left+' primeiras serão processadas.';
+ e.textContent=t}
+async function usage(action,extra){const r=await fetch(CONFIG.api+'/api/usage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({key:KEY,device:devId(),action},extra))});
+ if(!r.ok)throw new Error('http '+r.status);return r.json()}
+function setW(j){W=j&&j.limit!=null?{limit:j.limit,used:j.used,resetsAt:j.resetsAt}:null;showWeekly()}
 
 function positions(buf,L,m){
  const sr=buf.sampleRate,n=buf.length;
@@ -327,8 +337,10 @@ function pickPoints(buf,L,m){
  let l1=0,l2=0,s=0,k=0;
  for(let i=0;i<n;i++){const x=(a[i]+b[i])*.5;l1=(1-hp)*x+hp*l1;l2=(1-lp)*(x-l1)+lp*l2;s+=l2*l2;if(++k===hop){env.push(s/hop);s=0;k=0}}
  const w=Math.max(1,Math.ceil(L/hop)),edge=Math.floor(10/.05);
- if(dur<60||env.length<w+2*edge)return[Math.max(0,Math.floor(n/2-L/2))];
- const regs=dur<120?[[.4,.6]]:[[.15,.3],[.42,.58],[.7,.85]];
+ if(dur<60||env.length<w+2*edge){ /* música curta: 2 pontos fixos se couberem sem encostar; senão 1 no meio */
+  const p1=Math.max(0,Math.min(last,Math.floor(n*.25-L/2))),p2=Math.max(0,Math.min(last,Math.floor(n*.7-L/2)));
+  return p2-p1>=L*1.2?[p1,p2]:[Math.max(0,Math.floor(n/2-L/2))]}
+ const regs=[[.15,.4],[.55,.85]]; /* 2 vinhetas por música: uma na primeira metade e outra na segunda */
  return regs.map(([x,y])=>{const lo=Math.max(edge,Math.floor(env.length*x)),hi=Math.min(env.length-w-edge,Math.floor(env.length*y)-w);let best=Math.min(lo,hi),bs=Infinity;
   for(let t=lo;t<=hi;t++){let sum=0,mx=0;for(let q=0;q<w;q++){const e=env[t+q];sum+=e;if(e>mx)mx=e}const sc=sum/w+.5*mx;if(sc<bs){bs=sc;best=t}}
   return Math.max(0,best*hop)})}
@@ -370,7 +382,7 @@ $('#pv').onclick=()=>{const sel=o.pos==='manual'&&ed.f;preview(sel?ed.f:songs[0]
 $('#mpv').onclick=()=>$('#pv').onclick();
 
 /* ===== Posição manual: o cliente marca onde a vinheta entra, música por música ===== */
-const fkey=f=>f.name+'|'+f.size+'|'+f.lastModified,man={},ed={i:-1,f:null,buf:null,dur:0,act:-1,tok:0,sw:0};
+const MAXV=2,fkey=f=>f.name+'|'+f.size+'|'+f.lastModified,man={},ed={i:-1,f:null,buf:null,dur:0,act:-1,tok:0,sw:0};
 const mks=()=>ed.f?(man[fkey(ed.f)]||(man[fkey(ed.f)]=[])):[];
 const vinL=()=>vin?vin.duration:0,maxT=()=>Math.max(0,ed.dur-vinL());
 const clampT=t=>Math.min(maxT(),Math.max(0,Math.round(t*10)/10));
@@ -382,7 +394,7 @@ function manPts(f,buf,L){const sr=buf.sampleRate,last=Math.max(0,buf.length-L),a
  if(!a.length)return pickPoints(buf,L,'auto');
  const gp=Math.floor(o.gap*sr),out=[];
  for(const s of [...a].sort((x,y)=>x-y)){const p=Math.min(last,Math.max(0,Math.round(s*sr)));if(!out.length||p>=out[out.length-1]+L+gp)out.push(p)}
- return out}
+ return out.slice(0,MAXV)}
 function manFill(){const s=$('#msong');s.innerHTML='';
  songs.forEach((f,i)=>{const op=document.createElement('option');op.value=i;op.textContent=(i+1)+'. '+f.name;s.appendChild(op)});
  ed.f=null;ed.buf=null;ed.i=-1;ed.dur=0;ed.act=-1;ed.tok++;manShow()}
@@ -423,14 +435,15 @@ function manCount(){const L=vinL(),a=mks(),close=a.some((x,i)=>i&&x-a[i-1]<L+o.g
  $('#mmsg').textContent=(close?'Atenção: dois pontos estão mais perto que o tamanho da vinheta; o segundo será ignorado. ':'')+n+' de '+songs.length+' música(s) com ponto marcado. As outras usam o automático.'}
 $('#wfx').onclick=e=>{if(!ed.dur||Date.now()-ed.sw<400)return; /* ignora o clique que o navegador dispara ao soltar uma marca */
  const rc=e.currentTarget.getBoundingClientRect(),v=clampT((e.clientX-rc.left)/rc.width*ed.dur),a=mks();
+ if(a.length>=MAXV){toast('Máximo de '+MAXV+' vinhetas por música. Remova um ponto para marcar outro.');return}
  if(vin&&a.some(x=>Math.abs(x-v)<vin.duration)){toast('Já existe um ponto aqui perto. Mova o outro ou escolha outro trecho.');return}
  a.push(v);sortKeep(v);render();manCount()};
 $('#madd').onclick=()=>{if(!ed.dur)return;const v=parseT($('#mtime').value);if(isNaN(v)){toast('Digite o tempo no formato 1:05 ou 65.');return}
- const c=clampT(v),a=mks();if(vin&&a.some(x=>Math.abs(x-c)<vin.duration)){toast('Já existe um ponto aqui perto.');return}
+ const c=clampT(v),a=mks();if(a.length>=MAXV){toast('Máximo de '+MAXV+' vinhetas por música. Remova um ponto para marcar outro.');return}if(vin&&a.some(x=>Math.abs(x-c)<vin.duration)){toast('Já existe um ponto aqui perto.');return}
  a.push(c);sortKeep(c);$('#mtime').value='';render();manCount()};
 $('#mtime').onkeydown=e=>{if(e.key==='Enter')$('#madd').click()};
 $('#mauto').onclick=()=>{if(!ed.buf||!vin){toast('Envie a vinheta e espere a música abrir.');return}
- const a=[...new Set(pickPoints(ed.buf,vin.length,'auto').map(p=>clampT(p/ed.buf.sampleRate)))].sort((x,y)=>x-y);man[fkey(ed.f)]=a;ed.act=-1;render();manCount()};
+ const a=[...new Set(pickPoints(ed.buf,vin.length,'auto').map(p=>clampT(p/ed.buf.sampleRate)))].sort((x,y)=>x-y).slice(0,MAXV);man[fkey(ed.f)]=a;ed.act=-1;render();manCount()};
 $('#mclr').onclick=()=>{if(!ed.f)return;man[fkey(ed.f)]=[];ed.act=-1;render();manCount()};
 $('#mcopy').onclick=()=>{const a=mks();if(!a.length){toast('Marque pelo menos um ponto nesta música primeiro.');return}
  songs.forEach(f=>{man[fkey(f)]=[...a]});manCount();toast('Pontos copiados para '+songs.length+' música(s). Em música mais curta o ponto é ajustado para caber.')};
@@ -439,7 +452,14 @@ $('#mprev').onclick=()=>edLoad(ed.i-1);$('#mnext').onclick=()=>edLoad(ed.i+1);
 document.querySelectorAll('#pos button').forEach(b=>b.addEventListener('click',manShow));
 
 $('#go').onclick=async()=>{
- const list=paid?songs:songs.slice(0,FREE),zip=new JSZip(),wav=$('#wav').checked;zipBlob=null;
+ let list=paid?songs:songs.slice(0,FREE),ticket=null;
+ if(paid){ /* limite semanal: o servidor reserva as músicas ANTES de processar */
+  let g;try{g=await usage('reserve',{count:list.length})}catch(e){toast('Não consegui confirmar seu limite semanal. Verifique a internet e tente de novo.');return}
+  setW(g);
+  if(!g.granted){toast('Você já usou as '+g.limit+' músicas desta semana. O limite renova segunda-feira às 00:00 (horário de Brasília).');return}
+  if(g.granted<list.length)toast('Limite semanal: vão ser processadas as primeiras '+g.granted+' de '+list.length+' músicas.');
+  list=list.slice(0,g.granted);ticket=g.ticket||null}
+ const zip=new JSZip(),wav=$('#wav').checked;zipBlob=null;
  stop=false;$('#cx').textContent='Cancelar';$('#pb').style.width='0';$('#act').classList.add('hide');$('#rs').classList.add('hide');$('#prc').classList.remove('hide');
  const pl=$('#pl');pl.innerHTML='';const rows=list.map((f,i)=>{const d=document.createElement('div');d.innerHTML='<span></span><em>Na fila</em>';d.firstChild.textContent=(i+1)+'. '+f.name;pl.appendChild(d);return d});
  $('#prc').scrollIntoView({behavior:'smooth',block:'center'});let done=0,fail=0,hot=0;
@@ -449,6 +469,7 @@ $('#go').onclick=async()=>{
    if(paid){const base=list[i].name.replace(/\.[^.]+$/,''),ext=wav?'.wav':'.mp3';let nm=base,q=1;while(zip.file(nm+ext))nm=base+' ('+(++q)+')';zip.file(nm+ext,blob)}rows[i].className='d';rows[i].lastChild.textContent='Concluída';done++}
   catch(e){rows[i].lastChild.textContent='Erro';fail++}
   $('#pb').style.width=Math.round((i+1)/list.length*100)+'%';rows[i].scrollIntoView({block:'nearest'})}
+ if(ticket&&list.length>done){try{setW(await usage('settle',{ticket,count:list.length-done}))}catch(e){}} /* devolve ao limite as que não foram processadas */
  if(stop){$('#prc').classList.add('hide');$('#act').classList.remove('hide');toast('Processamento cancelado.');return}
  if(!done){$('#pn').textContent='Nenhuma música foi processada. Confira os arquivos.';$('#act').classList.remove('hide');return}
  if(paid)zipBlob=await zip.generateAsync({type:'blob'});
@@ -505,7 +526,7 @@ function pPoll(){clearInterval(pay.timer);let busy=false;
   busy=false},3000)}
 $('#pck').onclick=async()=>{try{await navigator.clipboard.writeText(pEl('pkey').textContent);toast('Chave copiada. Guarde em local seguro.')}catch(_){}};
 $('#pdone').onclick=pClose;
-function setPaid(k,q){paid=true;try{localStorage.setItem('ms_lic',JSON.stringify({key:k}))}catch(e){}$('#lic').textContent='Assinatura ativa ✓ (trocar chave)';upd();if(!q)toast('Assinatura ativada. Download liberado!')}
+function setPaid(k,q){paid=true;KEY=k.trim().toUpperCase();try{localStorage.setItem('ms_lic',JSON.stringify({key:k}))}catch(e){}$('#lic').textContent='Assinatura ativa ✓ (trocar chave)';upd();if(!q)toast('Assinatura ativada. Download liberado!')}
 $('#lic').onclick=e=>{e.preventDefault();$('#licbox').classList.toggle('hide')};
 $('#lic2').onclick=e=>{e.preventDefault();$('#licbox').classList.remove('hide');$('#planos').scrollIntoView({behavior:'smooth'});$('#lk').focus()};
 $('#lkb').onclick=async()=>{const k=$('#lk').value.trim();$('#lkm').textContent='Verificando…';try{if(await checkKey(k)){setPaid(k);$('#lkm').textContent='';$('#licbox').classList.add('hide')}else $('#lkm').textContent='Chave inválida. Confira e tente de novo.'}catch(e){$('#lkm').textContent=e&&e.message==='device-limit'?'Essa chave já está em 2 aparelhos. Fale com o suporte para liberar outro.':'Não consegui verificar agora. Tente de novo em instantes.'}};
