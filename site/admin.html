@@ -4,9 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>MarcaSom · Painel de clientes</title>
+<title>Painel de clientes do MarcaSom</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#050b0a">
 <style>
-:root{--bg:#060d0c;--card:#0b1514;--line:#1c2e2b;--tx:#eef3f1;--mu:#9fb0ac;--p:#1fa88a;--b:#8fe3cc;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#060d0c;--card:#0b1514;--line:#1c2e2b;--tx:#eef3f1;--mu:#9fb0ac;--p:#1fa88a;--b:#8fe3cc;--ok:#34d399;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--tx);font:400 15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .w{max-width:980px;margin:0 auto;padding:20px}
@@ -43,13 +44,20 @@ input[type=password],input[type=search]{background:#0a1211;border:1px solid var(
 .empty{color:var(--mu);text-align:center;padding:30px 0}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--card);border:1px solid var(--p);padding:11px 16px;border-radius:12px;max-width:90vw;z-index:9}
 @media(max-width:640px){.pu{grid-template-columns:1fr 1fr}.gr{grid-template-columns:1fr}}
+@font-face{font-family:Unbounded;src:url(/fonts/unbounded-latin-wght-normal.woff2) format("woff2");font-weight:200 900;font-display:swap}
+@font-face{font-family:Onest;src:url(/fonts/onest-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-display:swap}
+html{box-sizing:border-box}html,body{overflow-x:clip;max-width:100%}body{font-family:Onest,system-ui,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+h1{font:700 clamp(20px,5vw,26px)/1.2 Unbounded,system-ui,sans-serif;letter-spacing:-.02em;text-wrap:balance;margin:0}
+.lg{display:inline-flex;align-items:center;min-height:44px;margin-bottom:6px;font:700 15px Unbounded,system-ui,sans-serif;color:var(--b);text-decoration:none}
+.btn,.gr input,.gr select,input[type=password],input[type=search]{min-height:44px;font-size:16px}
+@media(max-width:640px){.w{padding:14px}.top .ac,.top>div:last-child{width:100%}}
 </style>
 </head>
 <body>
 <div class="w">
 
 <div id="login" class="card">
-<h1>Painel de clientes</h1>
+<a class="lg" href="/" aria-label="MarcaSom, ir para o site">MarcaSom</a><h1>Painel de clientes</h1>
 <p>Digite o <b>ADMIN_TOKEN</b> (o mesmo cadastrado nas variáveis da Netlify).</p>
 <input id="tok" type="password" autocomplete="current-password" placeholder="ADMIN_TOKEN" aria-label="ADMIN_TOKEN">
 <div class="err" id="lerr" role="alert"></div>
@@ -57,7 +65,7 @@ input[type=password],input[type=search]{background:#0a1211;border:1px solid var(
 </div>
 
 <div id="app" class="hide">
-<div class="top"><h1>Clientes do MarcaSom</h1><div style="display:flex;gap:8px"><button class="btn" id="reload" type="button">Atualizar</button><button class="btn" id="csv" type="button">Exportar CSV</button><button class="btn" id="out" type="button">Sair</button></div></div>
+<div class="top"><a class="lg" href="/" aria-label="MarcaSom, ir para o site">MarcaSom</a><h1>Clientes do MarcaSom</h1><div style="display:flex;gap:8px"><button class="btn" id="reload" type="button">Atualizar</button><button class="btn" id="csv" type="button">Exportar CSV</button><button class="btn" id="out" type="button">Sair</button></div></div>
 <div class="card" style="margin-bottom:14px"><b>Liberar acesso sem pagamento</b> <span style="color:var(--mu);font-size:13px">(para você testar, outros administradores ou venda feita por fora)</span>
 <div class="gr"><input id="gname" type="text" placeholder="Nome" aria-label="Nome" maxlength="80"><input id="gmail" type="email" placeholder="E-mail" aria-label="E-mail"><select id="gplan" aria-label="Plano"><option value="admin">Administrador (sem vencimento, 20 aparelhos)</option><option value="mensal">Mensal (30 dias)</option><option value="trimestral">Trimestral (90 dias)</option><option value="vitalicio">Vitalício</option></select><button class="btn pri" id="ggo" type="button">Gerar chave</button></div>
 <div id="gres" class="hide"><div class="gk" id="gkey"></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="btn" id="gcp" type="button">Copiar chave</button><span style="color:var(--mu);font-size:13px">Guarde agora: por segurança a chave não aparece de novo. No site, clique em "Já tenho uma chave" e cole.</span></div></div>
@@ -76,8 +84,8 @@ const $=s=>document.querySelector(s);
 let TOKEN='',DATA=null,ORDERS=null,MAXDEV=2;
 try{TOKEN=sessionStorage.getItem('ms_admin')||''}catch(e){}
 const PLAN={admin:'Administrador',mensal:'Mensal',trimestral:'Trimestral',vitalicio:'Vitalício'};
-const dt=ms=>ms?new Date(ms).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'—';
-const dd=ms=>ms?new Date(ms).toLocaleDateString('pt-BR'):'—';
+const dt=ms=>ms?new Date(ms).toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'sem dado';
+const dd=ms=>ms?new Date(ms).toLocaleDateString('pt-BR'):'sem dado';
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hide'),3500)};
 const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
 
@@ -106,7 +114,7 @@ function draw(){
  if(!list.length){v.appendChild(el('div','empty',all.length?'Ninguém encontrado nessa busca.':'Ainda não há compras aprovadas.'));return}
  list.forEach(c=>{
   const card=el('div','card cu'),top=el('div','ct'),l=el('div');
-  l.append(el('h2','',c.name||'(sem nome — compra antiga)'),el('div','em',c.email));
+  l.append(el('h2','',c.name||'(sem nome, compra antiga)'),el('div','em',c.email));
   const w=waLink(c.phone);
   if(c.phone){const p=el('div','em',c.phone+' ');if(w){const a=el('a','','Chamar no WhatsApp');a.href=w;a.target='_blank';a.rel='noopener noreferrer';p.appendChild(a)}l.appendChild(p)}
   const ac=el('div','ac'),b0=el('button','btn','Zerar limite da semana'),b1=el('button','btn','Zerar aparelhos'),b2=el('button','btn dng','Revogar chaves');
@@ -120,7 +128,7 @@ function draw(){
    const a=el('div');a.append(el('b','',PLAN[p.plan]||p.plan),el('small','','Comprou em '+dt(p.created_at)));
    const b=el('div');b.append(el('span','tg '+cls,txt),el('small','',p.expires_at?'Vence em '+dd(p.expires_at):'Sem vencimento'),el('small','',p.week?'Esta semana: '+p.week.used+' de '+p.week.limit+' músicas':'Sem limite semanal'));
    const cc=el('div');cc.append(el('b','',p.devices+' de '+(p.max||MAXDEV)),el('small','','aparelhos em uso'));
-   const d=el('div');d.append(el('b','',p.hint?'…'+p.hint:'—'),el('small','','final da chave'));
+   const d=el('div');d.append(el('b','',p.hint?'…'+p.hint:'sem dado'),el('small','','final da chave'));
    row.append(a,b,cc,d);card.appendChild(row)});
   v.appendChild(card)})}
 
