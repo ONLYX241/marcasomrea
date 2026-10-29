@@ -3,10 +3,21 @@
   "version": "2.0.0",
   "private": true,
   "description": "MarcaSom - site + funções Netlify (Pix AtenasPay)",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "@netlify/blobs": "^8.1.0",
     "@netlify/functions": "^2.8.2",
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "jszip": "3.10.1",
+    "lamejs": "1.2.1"
+  },
+  "scripts": {
+    "vendor": "cp node_modules/jszip/dist/jszip.min.js site/vendor/ && cp node_modules/lamejs/lame.min.js site/vendor/",
+    "audit": "npm audit --audit-level=high",
+    "secrets": "sh scripts/varrer-segredos.sh"
   }
 }

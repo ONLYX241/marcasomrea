@@ -1,13 +1,36 @@
-import type { Config } from '@netlify/functions';
-import { badConfig, cfg, cleanName, cleanPhone, code, devicesStore, hashKey, json, licensesStore, newLicenseKey, newOrderId, now, ordersStore, PLANS, readJson, safeEq, usageStore, weekInfo, weeklyOf, type License, type Order } from '../lib/common.mts';
+import type { Config, Context } from '@netlify/functions';
+import { apiKeyInfo, configProblems, guard, jsonH, lockCheck, lockClear, lockFail, makeSession, parseBody, sessionCookie, sessionOk, badConfig, cfg, cleanName, cleanPhone, code, devicesStore, hashKey, json, licensesStore, newLicenseKey, newOrderId, now, ordersStore, PLANS, safeEq, usageStore, weekInfo, weeklyOf, type License, type Order } from '../lib/common.mts';
 
 // Admin: autenticação por "Authorization: Bearer <ADMIN_TOKEN>"
-export default async (req: Request) => {
+export default async (req: Request, context: Context) => {
   const c = cfg();
   if (!c) return badConfig();
-  const tok = String(req.headers.get('authorization') || '').replace(/^Bearer /, '');
-  if (!safeEq(tok, c.adminToken)) return code(401);
-  const path = new URL(req.url).pathname;
+  const gd = guard(req, context, { admin: true });
+  if (gd) return gd;
+  const path = new URL(req.url).pathname, ip = context?.ip || '';
+
+  // Login: troca o token por um cookie HttpOnly (o token não fica no navegador). 5 erros = bloqueio de 15 min por IP.
+  if (req.method === 'POST' && path === '/api/admin/login') {
+    const lk = await lockCheck(ip);
+    if (lk.locked) return code(429);
+    const p = await parseBody(req, { token: ['s', 256, true] });
+    if (!p.ok) return p.res;
+    if (!safeEq(p.d.token, c.adminToken)) { await lockFail(lk.k, lk.n); return code(401); }
+    await lockClear(lk.k);
+    return jsonH({ ok: true }, 200, { 'set-cookie': sessionCookie(makeSession(c.pepper)) });
+  }
+  if (req.method === 'POST' && path === '/api/admin/logout') return jsonH({ ok: true }, 200, { 'set-cookie': sessionCookie('', 0) });
+
+  // Demais rotas: cookie de sessão OU "Authorization: Bearer <ADMIN_TOKEN>" (uso por API)
+  const bearer = String(req.headers.get('authorization') || '').replace(/^Bearer /, '');
+  if (!sessionOk(c.pepper, req)) {
+    if (!bearer) return code(401);
+    const lk = await lockCheck(ip);
+    if (lk.locked) return code(429);
+    if (!safeEq(bearer, c.adminToken)) { await lockFail(lk.k, lk.n); return code(401); }
+    await lockClear(lk.k);
+  }
+  const body = async (spec: Parameters<typeof parseBody>[1]) => parseBody(req, spec);
 
   // licenças de um e-mail
   const doEmail = async (email: string) => {
@@ -64,7 +87,9 @@ export default async (req: Request) => {
   // libera uma chave sem pagamento: administrador/teste (sem vencimento, 20 aparelhos) ou venda feita por fora (plano normal).
   // A chave aparece UMA vez na resposta; no servidor fica só o hash.
   if (req.method === 'POST' && path === '/api/admin/grant') {
-    const b = await readJson(req);
+    const p = await body({ email: ['s', 254, true], plan: ['s', 20], name: ['s', 80], phone: ['s', 40] });
+    if (!p.ok) return p.res;
+    const b = p.d;
     const email = String(b.email || '').trim().toLowerCase();
     const plan = String(b.plan || 'admin');
     if (!/^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/.test(email) || email.length > 254) return json({ error: 'E-mail inválido.' }, 400);
@@ -81,21 +106,27 @@ export default async (req: Request) => {
     return json({ key, plan, expires_at: lic.expires_at });
   }
   if (req.method === 'POST' && path === '/api/admin/revoke') {
-    const email = String((await readJson(req)).email || '').toLowerCase();
+    const p = await body({ email: ['s', 254, true] });
+    if (!p.ok) return p.res;
+    const email = String(p.d.email).trim().toLowerCase();
     const list = await doEmail(email);
     for (const { hash, lic } of list) await licensesStore().setJSON(hash, { ...lic, revoked: true });
     return json({ revoked: list.length });
   }
   // devolve o limite da semana (suporte: cliente que perdeu músicas por queda de internet, por exemplo)
   if (req.method === 'POST' && path === '/api/admin/reset-week') {
-    const email = String((await readJson(req)).email || '').toLowerCase();
+    const p = await body({ email: ['s', 254, true] });
+    if (!p.ok) return p.res;
+    const email = String(p.d.email).trim().toLowerCase();
     const wk = weekInfo();
     let n = 0;
     for (const { hash } of await doEmail(email)) { await usageStore().delete(`${hash}/${wk.id}`); n++; }
     return json({ reset: n });
   }
   if (req.method === 'POST' && path === '/api/admin/reset-devices') {
-    const email = String((await readJson(req)).email || '').toLowerCase();
+    const p = await body({ email: ['s', 254, true] });
+    if (!p.ok) return p.res;
+    const email = String(p.d.email).trim().toLowerCase();
     const D = devicesStore();
     let n = 0;
     for (const { hash } of await doEmail(email)) {
@@ -104,11 +135,22 @@ export default async (req: Request) => {
     }
     return json({ cleared: n });
   }
+  // diagnóstico da configuração (só para quem está logado)
+  if (req.method === 'GET' && path === '/api/admin/diag') return json({ configured: true, problemas: configProblems(), chaveAtenasPay: apiKeyInfo() });
+  // cifra os registros antigos (feitos antes da criptografia). Pode rodar mais de uma vez.
+  if (req.method === 'POST' && path === '/api/admin/encrypt-existing') {
+    let n = 0;
+    for (const S of [licensesStore(), ordersStore()]) {
+      const { blobs } = await S.list();
+      for (const { key } of blobs) { const o = await S.get(key); if (o) { await S.setJSON(key, o); n++; } }
+    }
+    return json({ rewritten: n });
+  }
   return code(404);
 };
 
 export const config: Config = {
-  path: ['/api/admin/orders', '/api/admin/customers', '/api/admin/grant', '/api/admin/revoke', '/api/admin/reset-week', '/api/admin/reset-devices'],
+  path: ['/api/admin/orders', '/api/admin/customers', '/api/admin/grant', '/api/admin/revoke', '/api/admin/reset-week', '/api/admin/reset-devices', '/api/admin/login', '/api/admin/logout', '/api/admin/diag', '/api/admin/encrypt-existing'],
   method: ['GET', 'POST'],
   rateLimit: { action: 'rate_limit', windowLimit: 20, windowSize: 60, aggregateBy: ['ip', 'domain'] },
 };

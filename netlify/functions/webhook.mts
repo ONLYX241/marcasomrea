@@ -54,4 +54,4 @@ export default async (req: Request) => {
   }
 };
 
-export const config: Config = { path: '/api/webhook', method: 'POST' };
+export const config: Config = { path: '/api/webhook', method: 'POST', rateLimit: { action: 'rate_limit', windowLimit: 120, windowSize: 60, aggregateBy: ['ip', 'domain'] } };

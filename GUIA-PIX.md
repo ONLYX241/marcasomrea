@@ -1,4 +1,4 @@
-# MarcaSom – Pix na Netlify (passo a passo)
+# MarcaSom: Pix na Netlify (passo a passo)
 
 Tudo roda na Netlify, no mesmo endereço: o site e as funções `/api/...`.
 O cliente paga o Pix, a AtenasPay avisa o webhook, o servidor gera a chave e o site libera sozinho.

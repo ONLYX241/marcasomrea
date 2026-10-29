@@ -1,6 +1,6 @@
 import type { Config, Context } from '@netlify/functions';
 import QRCode from 'qrcode';
-import { atenasCreate, badConfig, cents, cfg, cleanName, cleanPhone, emvAmount, json, newOrderId, now, ordersStore, pendingKey, pendingStore, pick, PIX_VALID_MS, PLANS, readJson, verifyTurnstile, type Order } from '../lib/common.mts';
+import { atenasCreate, badConfig, cents, cfg, cleanName, cleanPhone, emvAmount, json, newOrderId, now, ordersStore, pendingKey, pendingStore, pick, PIX_VALID_MS, PLANS, guard, parseBody, verifyTurnstile, type Order } from '../lib/common.mts';
 
 // 1) cria a cobrança Pix com o PREÇO DO SERVIDOR
 export default async (req: Request, context?: Context) => {
@@ -8,7 +8,11 @@ export default async (req: Request, context?: Context) => {
   if (!c) return badConfig();
   if (c.checkoutPaused) return json({ error: 'Vendas temporariamente pausadas. Tente novamente mais tarde.' }, 503);
   try {
-    const b = await readJson(req);
+    const g = guard(req, context); if (g) return g;
+    const p = await parseBody(req, { plan: ['s', 20, true], email: ['s', 254, true], name: ['s', 80, true], phone: ['s', 40], ts: ['s', 2048], website: ['s', 200] });
+    if (!p.ok) return p.res;
+    const b = p.d;
+    if (b.website) return json({ error: 'Não foi possível concluir. Tente de novo.' }, 400); // isca anti-robô preenchida
     const plan = String(b.plan || '');
     const email = String(b.email || '').trim().toLowerCase();
     const name = cleanName(b.name), phone = cleanPhone(b.phone);
@@ -22,7 +26,7 @@ export default async (req: Request, context?: Context) => {
     }
 
     const P = PLANS[plan];
-    const pk = pendingKey(plan, email);
+    const pk = pendingKey(plan, email, c.pepper);
 
     // Já existe um Pix pendente e válido para esse e-mail+plano? Devolve o mesmo.
     const pend = await pendingStore().get(pk, { type: 'json' }) as { id: string } | null;

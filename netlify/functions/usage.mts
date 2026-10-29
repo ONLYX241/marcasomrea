@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions';
-import { badConfig, cfg, json, loadLicense, newOrderId, now, readJson, usageChange, usageStore, weekInfo, weeklyOf } from '../lib/common.mts';
+import { badConfig, cfg, json, loadLicense, newOrderId, now, guard, parseBody, usageChange, usageStore, weekInfo, weeklyOf } from '../lib/common.mts';
 
 // 5) limite semanal de músicas.
 //   reserve: o site pede X músicas ANTES de processar; o servidor concede até o que sobrar da semana.
@@ -8,7 +8,10 @@ import { badConfig, cfg, json, loadLicense, newOrderId, now, readJson, usageChan
 export default async (req: Request) => {
   const c = cfg();
   if (!c) return badConfig();
-  const b = await readJson(req);
+  const g = guard(req); if (g) return g;
+  const p = await parseBody(req, { key: ['s', 64, true], device: ['s', 64, true], action: ['s', 10], count: ['n', 10000], ticket: ['s', 64] });
+  if (!p.ok) return p.res;
+  const b = p.d;
   const ok = await loadLicense(c.pepper, b.key, b.device);
   if (!ok) return json({ error: 'Chave inválida.' }, 403);
   const { h, L } = ok;

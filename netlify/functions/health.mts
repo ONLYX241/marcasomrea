@@ -1,7 +1,7 @@
 import type { Config } from '@netlify/functions';
-import { apiKeyInfo, cfg, configProblems, json } from '../lib/common.mts';
+import { cfg, json } from '../lib/common.mts';
 
-// Diagnóstico: mostra se as variáveis de ambiente estão completas (sem revelar valores).
-export default async () => json({ ok: true, configured: cfg() !== null, problemas: configProblems(), chaveAtenasPay: apiKeyInfo() });
+// Diagnóstico público e mínimo: só diz se está configurado. Detalhes ficam em /api/admin/diag (exige login).
+export default async () => json({ ok: true, configured: cfg() !== null });
 
-export const config: Config = { path: '/health', method: 'GET' };
+export const config: Config = { path: '/health', method: 'GET', rateLimit: { action: 'rate_limit', windowLimit: 30, windowSize: 60, aggregateBy: ['ip', 'domain'] } };

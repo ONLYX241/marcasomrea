@@ -58,8 +58,9 @@ export const cleanName = (v: unknown) => String(v ?? '').replace(/[\u0000-\u001f
 export const cleanPhone = (v: unknown) => String(v ?? '').replace(/[^\d+()\-\s]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20);
 
 // ---------- Respostas ----------
-const H = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' };
+const H = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'cross-origin-resource-policy': 'same-origin', 'x-robots-tag': 'noindex' };
 export const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: H });
+export const jsonH = (data: unknown, status: number, extra: Record<string, string>) => new Response(JSON.stringify(data), { status, headers: { ...H, ...extra } });
 export const code = (status: number) => new Response(null, { status, headers: { 'cache-control': 'no-store' } });
 export const badConfig = () => json({ error: 'Servidor de pagamentos não configurado.' }, 500);
 export async function readJson(req: Request): Promise<any> {
@@ -80,8 +81,8 @@ export type License = {
   max_devices?: number;           // limite próprio de aparelhos (chaves de administrador); vazio = MAX_DEVICES
 };
 
-export const ordersStore = () => getStore({ name: 'orders', consistency: 'strong' });
-export const licensesStore = () => getStore({ name: 'licenses', consistency: 'strong' });
+export const ordersStore = () => secureStore('orders', ['email', 'name', 'phone', 'key_plain', 'qr', 'qrImage']);
+export const licensesStore = () => secureStore('licenses', ['email', 'name', 'phone']);
 export const pendingStore = () => getStore({ name: 'pending', consistency: 'strong' });
 export const devicesStore = () => getStore({ name: 'devices', consistency: 'strong' });
 export const usageStore = () => getStore({ name: 'usage', consistency: 'strong' });
@@ -135,9 +136,10 @@ export function newLicenseKey() {
   for (let i = 0; i < 20; i++) s += alpha[b[i] % alpha.length];
   return 'MS-' + (s.match(/.{5}/g) as string[]).join('-');
 }
+// Compara os dois lados depois de um SHA-256: tempo constante e sem revelar o tamanho do segredo.
 export const safeEq = (a: unknown, b: unknown) => {
-  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
-  return x.length === y.length && crypto.timingSafeEqual(x, y);
+  const x = crypto.createHash('sha256').update(String(a)).digest(), y = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(x, y);
 };
 export const hmacHex = (secret: string, msg: string) => crypto.createHmac('sha256', secret).update(msg).digest('hex');
 
@@ -230,5 +232,106 @@ export async function verifyTurnstile(secret: string, token: string, ip?: string
 }
 
 // Um Pix pendente por e-mail+plano: cliques repetidos devolvem o MESMO Pix e não criam cobranças novas.
-export const pendingKey = (plan: string, email: string) => crypto.createHash('sha256').update(plan + '|' + email).digest('hex');
+export const pendingKey = (plan: string, email: string, pepper: string) => crypto.createHmac('sha256', pepper).update(plan + '|' + email).digest('hex');
 export const PIX_VALID_MS = 25 * 60 * 1000;
+
+// ---------- Criptografia de dados em repouso (AES-256-GCM) ----------
+// Nome, e-mail, WhatsApp, chave em texto puro e Pix ficam cifrados no armazenamento.
+// A chave de cifra vem de DATA_KEY (ou, se não existir, é derivada de LICENSE_PEPPER). Trocar DATA_KEY depois torna os dados antigos ilegíveis.
+let _dk: Buffer | null = null;
+function dataKey(): Buffer {
+  if (_dk) return _dk;
+  const secret = clean(Netlify.env.get('DATA_KEY')) || clean(Netlify.env.get('LICENSE_PEPPER'));
+  _dk = Buffer.from(crypto.hkdfSync('sha256', secret, 'marcasom-sal', 'dados-v1', 32));
+  return _dk;
+}
+const seal = (v: string) => {
+  const iv = crypto.randomBytes(12), ci = crypto.createCipheriv('aes-256-gcm', dataKey(), iv);
+  const ct = Buffer.concat([ci.update(v, 'utf8'), ci.final()]);
+  return 'enc1:' + Buffer.concat([iv, ci.getAuthTag(), ct]).toString('base64url');
+};
+const unseal = (v: string) => {
+  if (!v.startsWith('enc1:')) return v; // registro antigo, ainda sem cifra
+  try {
+    const b = Buffer.from(v.slice(5), 'base64url'), d = crypto.createDecipheriv('aes-256-gcm', dataKey(), b.subarray(0, 12));
+    d.setAuthTag(b.subarray(12, 28));
+    return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString('utf8');
+  } catch { console.error('falha ao decifrar um campo (DATA_KEY mudou?)'); return ''; }
+};
+function secureStore(name: string, fields: string[]) {
+  const s = getStore({ name, consistency: 'strong' });
+  const map = (o: any, f: (x: string) => string) => {
+    if (!o || typeof o !== 'object') return o;
+    const r = { ...o };
+    for (const k of fields) if (typeof r[k] === 'string' && r[k]) r[k] = f(r[k]);
+    return r;
+  };
+  return {
+    get: async (k: string, _o?: unknown): Promise<any> => map(await s.get(k, { type: 'json' }), unseal),
+    getWithMetadata: async (k: string, _o?: unknown): Promise<{ data: any; etag: string } | null> => {
+      const r = await s.getWithMetadata(k, { type: 'json' });
+      return r ? { data: map(r.data, unseal), etag: r.etag } : null;
+    },
+    setJSON: (k: string, v: unknown, o?: any) => s.setJSON(k, map(v, seal), o),
+    delete: (k: string) => s.delete(k),
+    list: (o?: any) => s.list(o),
+  };
+}
+
+// ---------- Acesso: origem, IP do admin ----------
+export function guard(req: Request, ctx?: { ip?: string }, opts: { admin?: boolean } = {}): Response | null {
+  const host = req.headers.get('host') || new URL(req.url).host, origin = req.headers.get('origin');
+  if (origin) { try { if (new URL(origin).host !== host) return code(403); } catch { return code(403); } }
+  const sfs = req.headers.get('sec-fetch-site');
+  if (req.method !== 'GET' && sfs && sfs !== 'same-origin' && sfs !== 'none') return code(403);
+  if (opts.admin) {
+    const ips = clean(Netlify.env.get('ADMIN_IPS')).split(',').map(s => s.trim()).filter(Boolean);
+    if (ips.length && !ips.includes(ctx?.ip || '')) return code(404);
+  }
+  return null;
+}
+
+// ---------- Validação de entrada (esquema fechado: campo desconhecido é recusado) ----------
+type Spec = Record<string, ['s' | 'n', number, boolean?]>;
+export async function parseBody(req: Request, spec: Spec): Promise<{ ok: true; d: Record<string, any> } | { ok: false; res: Response }> {
+  const bad = (s = 400, m = 'Dados inválidos.') => ({ ok: false as const, res: json({ error: m }, s) });
+  if (!(req.headers.get('content-type') || '').toLowerCase().startsWith('application/json')) return bad(415, 'Tipo de conteúdo inválido.');
+  const t = await req.text();
+  if (t.length > 8192) return bad(413, 'Pedido grande demais.');
+  let b: any;
+  try { b = JSON.parse(t || '{}'); } catch { return bad(); }
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return bad();
+  for (const k of Object.keys(b)) if (!Object.hasOwn(spec, k)) return bad(); // bloqueia mass assignment
+  const d: Record<string, any> = {};
+  for (const [k, [ty, max, need]] of Object.entries(spec)) {
+    const v = b[k];
+    if (v === undefined || v === null || v === '') { if (need) return bad(); continue; }
+    if (ty === 's') { if (typeof v !== 'string' || v.length > max) return bad(); }
+    else if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > max) return bad();
+    d[k] = v;
+  }
+  return { ok: true, d };
+}
+
+// ---------- Sessão do admin (cookie HttpOnly assinado) e trava contra tentativas ----------
+export const COOKIE = '__Host-ms_admin';
+const SESSION_S = 3600;
+export function makeSession(pepper: string) {
+  const exp = String(now() + SESSION_S * 1000), n = crypto.randomBytes(8).toString('hex');
+  return `${exp}.${n}.${hmacHex(pepper + '|admin', exp + '.' + n)}`;
+}
+export function sessionOk(pepper: string, req: Request) {
+  const m = (req.headers.get('cookie') || '').split(/;\s*/).find(s => s.startsWith(COOKIE + '='));
+  if (!m) return false;
+  const [exp, n, sig] = m.slice(COOKIE.length + 1).split('.');
+  return !!(exp && n && sig) && Number(exp) > now() && safeEq(hmacHex(pepper + '|admin', exp + '.' + n), sig);
+}
+export const sessionCookie = (v: string, maxAge = SESSION_S) => `${COOKIE}=${v}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Strict`;
+const rlStore = () => getStore({ name: 'ratelimit', consistency: 'strong' });
+export async function lockCheck(ip: string) {
+  const k = crypto.createHash('sha256').update('ip|' + (ip || 'x')).digest('hex');
+  const r = await rlStore().get(k, { type: 'json' }) as { n: number; until: number } | null;
+  return { k, n: r?.n || 0, locked: !!r && r.until > now() };
+}
+export const lockFail = (k: string, n: number) => rlStore().setJSON(k, { n: n + 1, until: n + 1 >= 5 ? now() + 15 * 60000 : 0 });
+export const lockClear = (k: string) => rlStore().delete(k);

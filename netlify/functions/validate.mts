@@ -1,11 +1,14 @@
 import type { Config } from '@netlify/functions';
-import { badConfig, cfg, devicesStore, hashKey, json, licensesStore, now, readJson, usageStore, weekInfo, weeklyOf, type License } from '../lib/common.mts';
+import { badConfig, cfg, devicesStore, hashKey, json, licensesStore, now, guard, parseBody, usageStore, weekInfo, weeklyOf, type License } from '../lib/common.mts';
 
 // 4) valida a chave + limite de aparelhos
 export default async (req: Request) => {
   const c = cfg();
   if (!c) return badConfig();
-  const b = await readJson(req);
+  const g = guard(req); if (g) return g;
+  const p = await parseBody(req, { key: ['s', 64, true], device: ['s', 64, true] });
+  if (!p.ok) return p.res;
+  const b = p.d;
   const key = String(b.key || '').trim().toUpperCase();
   const device = String(b.device || '');
   if (!/^MS-([A-Z2-9]{5}-){3}[A-Z2-9]{5}$/.test(key) || !/^[a-f0-9]{32}$/.test(device)) return json({ valid: false });
