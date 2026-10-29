@@ -239,7 +239,7 @@ $('#pgo').onclick=async()=>{const email=pEl('pmail').value.trim(),err=pEl('pe');
   try{sessionStorage.setItem('ms_order',pay.order)}catch(_){}
   pPoll()}
  catch(x){const net=x instanceof TypeError;
-  if(net)console.error('Falha de rede ao chamar '+CONFIG.api+'/api/checkout. Confira se o site foi publicado pelo Git/CLI (arrastar a pasta nao publica as funcoes) e abra /health no seu site.',x);
+  if(net)console.error('Falha de rede ao chamar %s/api/checkout. Confira se o site foi publicado pelo Git/CLI (arrastar a pasta nao publica as funcoes) e abra /health no seu site.',CONFIG.api,x);
   err.textContent=net?'Não consegui falar com o servidor de pagamentos. Tente de novo em instantes.':(x.message||'Erro ao gerar o Pix.')}
  tsReset();b.disabled=false;b.textContent='Gerar Pix'};
 $('#pcp').onclick=async()=>{const c=pEl('pcode');try{await navigator.clipboard.writeText(c.value)}catch(_){c.select();document.execCommand('copy')}toast('Código Pix copiado. Cole no app do seu banco.')};

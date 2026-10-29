@@ -1,4 +1,4 @@
-(()=>{const $=s=>document.querySelector(s),R=(a,b)=>a+Math.random()*(b-a),M=matchMedia('(prefers-reduced-motion:reduce)').matches;
+(()=>{const $=s=>document.querySelector(s),R=(a,b)=>a+(crypto.getRandomValues(new Uint32Array(1))[0]/4294967296)*(b-a),M=matchMedia('(prefers-reduced-motion:reduce)').matches;
 function box(w,h,d,c,y){const e=document.createElement('div');e.className='bx '+c;e.style.cssText='width:'+w+'px;height:'+h+'px;left:'+-w/2+'px;top:'+(y-h/2)+'px';
  [['f','translateZ('+d/2+'px)',w,h],['k','rotateY(180deg) translateZ('+d/2+'px)',w,h],['r','rotateY(90deg) translateZ('+w/2+'px)',d,h],['l','rotateY(-90deg) translateZ('+w/2+'px)',d,h],['t','rotateX(90deg) translateZ('+h/2+'px)',w,d],['u','rotateX(-90deg) translateZ('+h/2+'px)',w,d]].forEach(([k,tr,fw,fh])=>{const f=document.createElement('div');f.className=k;f.style.cssText='width:'+fw+'px;height:'+fh+'px;left:'+(w-fw)/2+'px;top:'+(h-fh)/2+'px;transform:'+tr;e.appendChild(f)});return e}
 const stk=$('#stk'),bd=box(128,208,38,'bd',0),cn=box(70,80,16,'cn',-138);bd.querySelector('.f').innerHTML='MarcaSom<i></i>';stk.append(cn,bd);
